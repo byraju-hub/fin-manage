@@ -143,6 +143,7 @@
 					{#if canOffer}<a href={hrefTo('/offerings')} class:active={path.startsWith('/offerings')}>헌금</a>{/if}
 					<a href={hrefTo('/vouchers')} class:active={path.startsWith('/vouchers')}>결의서</a>
 					<a href={hrefTo('/approvals')} class:active={path.startsWith('/approvals')}>결재함</a>
+					{#if isStaff}<a href={hrefTo('/receipts')} class:active={path.startsWith('/receipts')}>영수증</a>{/if}
 					{#if canLedger}<a href={hrefTo('/ledger')} class:active={path.startsWith('/ledger')}>장부</a>{/if}
 					{#if canBudget}<a href={hrefTo('/budget')} class:active={path.startsWith('/budget')}>예산</a>{/if}
 					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
