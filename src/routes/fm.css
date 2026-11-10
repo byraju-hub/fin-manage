@@ -251,3 +251,11 @@ tr.hit td { background: #fff8e8; }
 }
 
 .kpi b .of { display: inline; margin-left: 0.2rem; }
+
+/* 인쇄: 화면 틀을 숨기고 내용만 */
+@media print {
+	.site-header, .site-footer, .tabbar, .no-print, .modal-bg { display: none !important; }
+	body, .site { background: #fff !important; }
+	main { padding: 0 !important; max-width: none !important; }
+	.card { box-shadow: none !important; border: 0 !important; }
+}

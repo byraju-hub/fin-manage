@@ -28,6 +28,8 @@
 	const path = $derived(stripBase(page.url.pathname));
 	const isAdmin = $derived(!!me?.access?.isAdmin);
 	const isStaff = $derived(isAdmin || !!me?.access?.roles.includes('재정 담당'));
+	const canOffer = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '계수 위원', '재정위원장', '담임목사', '감사', '열람'].includes(r)));
+	const canReport = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)) || !!me?.access?.canViewDonors);
 	let rcPw = $state('');
 	let rcMsg = $state('');
 	let rcBusy = $state(false);
@@ -136,6 +138,8 @@
 
 				<nav class="main-nav" class:open={menuOpen} aria-label="주 메뉴">
 					<a href={hrefTo('/')} class:active={path === '/'}>대시보드</a>
+					{#if canOffer}<a href={hrefTo('/offerings')} class:active={path.startsWith('/offerings')}>헌금</a>{/if}
+					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
 					{#if isStaff}
 						<a href={hrefTo('/units')} class:active={path.startsWith('/units')}>재정 단위</a>
 						<a href={hrefTo('/base')} class:active={path.startsWith('/base')}>기준 자료</a>
