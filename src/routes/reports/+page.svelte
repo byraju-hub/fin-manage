@@ -4,13 +4,14 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import DonorPicker, { type Donor } from '#lib/DonorPicker.svelte';
 	import { won, localDate, errText } from '#lib/fmt.ts';
+	import { hrefTo } from '#lib/paths.ts';
 
 	const roles = $derived(auth.me?.access?.roles ?? []);
 	const canTotals = $derived(roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)));
 	const isStaff = $derived(roles.includes('재정 담당'));
 	const canDonor = $derived(!!auth.me?.access?.canViewDonors);
 
-	type Tab = 'weekly' | 'bulletin' | 'person' | 'monthly' | 'exec';
+	type Tab = 'weekly' | 'bulletin' | 'person' | 'monthly' | 'exec' | 'settle';
 	let tab = $state<Tab>('weekly');
 	let err = $state('');
 	const t = localDate();
@@ -32,6 +33,8 @@
 	let monthly = $state<M | null>(null);
 	type X = { units: { unit: string; items: { name: string; budget: number; paid: number; pending: number; remain: number; rate: number }[] }[]; income: { name: string; budget: number; actual: number }[] };
 	let exec = $state<X | null>(null);
+	type S = { year: number; income: { name: string; budget: number; actual: number; prior: number }[]; expense: { unit: string; items: { name: string; budget: number; actual: number }[] }[]; carryIn: number; wallets: { name: string; balance: number }[] };
+	let settle = $state<S | null>(null);
 
 	async function load() {
 		err = '';
@@ -41,6 +44,7 @@
 			else if (tab === 'person') {
 				if (who) hist = await auth.api('GET', `/donors/history?donor=${encodeURIComponent(who)}&from=${hr.from}&to=${hr.to}`);
 			} else if (tab === 'monthly') monthly = await auth.api<M>('GET', `/reports/monthly?year=${ym.year}&month=${ym.month}`);
+			else if (tab === 'settle') settle = await auth.api<S>('GET', `/reports/settlement?year=${ym.year}`);
 			else exec = await auth.api<X>('GET', `/reports/execution?year=${ym.year}`);
 		} catch (e) {
 			err = errText(e);
@@ -67,6 +71,7 @@
 			<button class="ghost sm" class:on={tab === 'weekly'} type="button" onclick={() => go('weekly')}>주간 헌금</button>
 			<button class="ghost sm" class:on={tab === 'monthly'} type="button" onclick={() => go('monthly')}>월 재정</button>
 			<button class="ghost sm" class:on={tab === 'exec'} type="button" onclick={() => go('exec')}>집행 현황</button>
+			<button class="ghost sm" class:on={tab === 'settle'} type="button" onclick={() => go('settle')}>결산서</button>
 		{/if}
 		{#if isStaff}<button class="ghost sm" class:on={tab === 'bulletin'} type="button" onclick={() => go('bulletin')}>주보용 명단</button>{/if}
 		{#if canDonor}<button class="ghost sm" class:on={tab === 'person'} type="button" onclick={() => go('person')}>개인별 내역</button>{/if}
@@ -80,9 +85,10 @@
 		<input type="date" bind:value={range.from} style="width:auto" aria-label="시작일" /> ~ <input type="date" bind:value={range.to} style="width:auto" aria-label="끝일" />
 		<button class="sm" type="submit">보기</button>
 	</form>
-{:else if tab === 'monthly' || tab === 'exec'}
+{:else if tab === 'monthly' || tab === 'exec' || tab === 'settle'}
 	<form class="row no-print" style="flex-wrap:wrap" onsubmit={(e) => { e.preventDefault(); load(); }}>
 		<input type="number" bind:value={ym.year} style="width:6.5rem" aria-label="연도" />년
+		{#if tab === 'settle'}<a class="ghost sm" style="padding:.35rem .7rem;border:1px solid var(--line-strong);border-radius:10px" href={hrefTo('/api/v1/export/settlement') + '?year=' + ym.year}>엑셀로 받기</a>{/if}
 		{#if tab === 'monthly'}<select bind:value={ym.month} style="width:auto" aria-label="월">{#each Array.from({ length: 12 }, (_, i) => i + 1) as m}<option value={m}>{m}월</option>{/each}</select>{/if}
 		<button class="sm" type="submit">보기</button>
 	</form>
@@ -172,5 +178,22 @@
 		</div>
 		<h3>수입 예산 대비 실적</h3>
 		<table class="sm"><thead><tr><th>수입 항목</th><th class="right">예산</th><th class="right">실적</th></tr></thead><tbody>{#each exec.income as i}<tr><td>{i.name}</td><td class="right">{won(i.budget)}</td><td class="right money">{won(i.actual)}</td></tr>{/each}</tbody></table>
+	</div>
+{/if}
+{#if tab === 'settle' && settle}
+	<div class="card">
+		<div class="card-head"><h2>{settle.year}년 결산서</h2><span class="sub">공동의회 자료 · 예산 대비 결산, 수입은 전년 대비</span></div>
+		<h3>수입</h3>
+		<table class="sm"><thead><tr><th>항목</th><th class="right">예산</th><th class="right">결산</th><th class="right">전년</th></tr></thead><tbody>
+			{#each settle.income as i}<tr><td>{i.name}</td><td class="right">{won(i.budget)}</td><td class="right money">{won(i.actual)}</td><td class="right">{won(i.prior)}</td></tr>{/each}
+			<tr class="tot"><td>합계</td><td class="right">{won(settle.income.reduce((s, i) => s + i.budget, 0))}</td><td class="right money">{won(settle.income.reduce((s, i) => s + i.actual, 0))}</td><td class="right">{won(settle.income.reduce((s, i) => s + i.prior, 0))}</td></tr>
+		</tbody></table>
+		<h3>지출</h3>
+		<table class="sm"><thead><tr><th>항목</th><th class="right">예산(변경 반영)</th><th class="right">결산</th></tr></thead><tbody>
+			{#each settle.expense as u}<tr class="tot"><td colspan="3">{u.unit}</td></tr>{#each u.items as i}<tr><td>{i.name}</td><td class="right">{won(i.budget)}</td><td class="right money">{won(i.actual)}</td></tr>{/each}{/each}
+			<tr class="tot"><td>합계</td><td class="right">{won(settle.expense.reduce((s, u) => s + u.items.reduce((x, i) => x + i.budget, 0), 0))}</td><td class="right money">{won(settle.expense.reduce((s, u) => s + u.items.reduce((x, i) => x + i.actual, 0), 0))}</td></tr>
+		</tbody></table>
+		<h3>연말 잔액{settle.carryIn ? ' (전기 이월금 ' + won(settle.carryIn) + '원)' : ''}</h3>
+		<table class="sm"><tbody>{#each settle.wallets as w}<tr><td>{w.name}</td><td class="right money">{won(w.balance)}</td></tr>{/each}</tbody></table>
 	</div>
 {/if}

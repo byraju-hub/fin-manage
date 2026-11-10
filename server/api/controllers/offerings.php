@@ -341,3 +341,43 @@ route('GET', '/reports/offering-stats', function () {
     $r = rows('SELECT DATE_FORMAT(o.offering_date, \'%m\') AS m, o.income_account_id AS a, SUM(o.amount) AS s, COUNT(DISTINCT o.donor_id) AS donors FROM ' . t('offerings') . ' o JOIN ' . t('offering_batches') . " b ON b.id = o.batch_id WHERE b.status = '마감' AND b.fiscal_year = ? GROUP BY m, o.income_account_id", [$year]);
     json_out(['items' => array_map(fn($x) => ['month' => (int)$x['m'], 'accountId' => (int)$x['a'], 'sum' => (int)$x['s']], $r)]);
 });
+
+/**
+ * 통장 내역으로 헌금 맞추기(확장): 이름·금액 줄을 받아 계좌이체 헌금으로 넣는다.
+ * 이름이 교적에서 한 명으로만 맞을 때(또는 교인이 아닌 헌금자 이름과 정확히 같을 때)만 넣고, 나머지는 사람이 고르도록 돌려준다.
+ */
+route('POST', '/offering-batches/{id}/import', function (int $id) {
+    $a = require_entry();
+    $batch = batch_for_entry($id, $a);
+    if ($batch['status'] !== '입력 중') json_fail('invalid_state', '마감된 묶음입니다.', 409);
+    require_month_open($batch['batch_date']);
+    $b = body();
+    $acct = row('SELECT * FROM ' . t('income_accounts') . ' WHERE id = ? AND is_offering = 1 AND is_active = 1 AND named = 1', [in_int($b, 'accountId', 1, PHP_INT_MAX, '헌금 종류')]);
+    if (!$acct) json_fail('invalid', '이름을 적는 헌금 종류를 골라 주세요.', 422);
+    $in = $b['rows'] ?? null;
+    if (!is_array($in) || !$in || count($in) > 500) json_fail('invalid', '내역은 1~500줄이어야 합니다.', 422);
+    $added = 0;
+    $unmatched = [];
+    tx(function () use ($in, $acct, $batch, $a, $id, &$added, &$unmatched) {
+        foreach (array_values($in) as $n => $r) {
+            $name = trim((string)($r['name'] ?? ''));
+            $amt = $r['amount'] ?? null;
+            if (is_string($amt) && preg_match('/^\d+$/', $amt)) $amt = (int)$amt;
+            if ($name === '' || !is_int($amt) || $amt < 1 || $amt > 9_000_000_000_000) { $unmatched[] = ['row' => $n, 'name' => $name, 'amount' => $r['amount'] ?? null, 'why' => '이름이나 금액이 올바르지 않습니다.']; continue; }
+            $people = rows('SELECT id FROM ' . cmt('people') . ' WHERE name = ? AND purged_on IS NULL LIMIT 3', [$name]);
+            $donor = null;
+            if (count($people) === 1) $donor = ensure_donor_for_person($people[0]['id']);
+            elseif (count($people) > 1) { $unmatched[] = ['row' => $n, 'name' => $name, 'amount' => $amt, 'why' => '같은 이름의 교인이 여러 명입니다. 직접 골라 주세요.']; continue; }
+            else {
+                $d = rows('SELECT id FROM ' . t('donors') . ' WHERE person_id IS NULL AND name = ? LIMIT 2', [$name]);
+                if (count($d) === 1) $donor = (int)$d[0]['id'];
+                else { $unmatched[] = ['row' => $n, 'name' => $name, 'amount' => $amt, 'why' => '교적에서 찾지 못했습니다. 이름을 확인하거나 교인이 아닌 헌금자로 추가해 주세요.']; continue; }
+            }
+            q('INSERT INTO ' . t('offerings') . ' (batch_id, offering_date, income_account_id, donor_id, amount, method, memo, created_by) VALUES (?,?,?,?,?,?,?,?)',
+                [$id, $batch['batch_date'], $acct['id'], $donor, $amt, '계좌이체', mb_substr(trim((string)($r['memo'] ?? '')) ?: '통장 내역', 0, 255), $a['access']['id']]);
+            $added++;
+        }
+    });
+    audit('통장 내역 가져오기', "묶음 $id: $added 건");
+    json_out(['added' => $added, 'unmatched' => $unmatched]);
+});

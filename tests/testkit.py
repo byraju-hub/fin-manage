@@ -33,7 +33,7 @@ def wipe():
     sql("delete from fm_budget_changes where reason like '시험%'")
     sql("delete from fm_budget_items where name like '시험%'")
     sql("delete from fm_delegations where from_name like '시험%'")
-    sql("delete from fm_closings where period in ('2097-01','2098-01','2026-11') and note like '시험%'")
+    sql("delete from fm_closings where period like '2097-%' or period like '2098-%' or period like '2099-%' or (period = '2026-11' and note like '시험%')")
     sql("delete from fm_access where login_id like 't\\_%'")
     sql("delete from cm_users where login_id like 't\\_%'")
     sql("delete from fm_units where fiscal_year in (2097,2098,2099) or name like '시험%'")

@@ -32,6 +32,7 @@
 	let counted = $state<Record<string, string>>({});
 	let countersTxt = $state('');
 	let cl = $state({ cash: 0, bank: 0, reason: '' });
+	let imp = $state({ text: '', unmatched: [] as { name: string; amount: unknown; why: string }[] });
 	let picker: DonorPicker | undefined = $state();
 	let amountEl: HTMLInputElement | undefined = $state();
 
@@ -122,6 +123,32 @@
 			await tick();
 			if (acct?.named) picker?.focus();
 			else amountEl?.focus();
+		}
+	}
+	/** 통장 내역 붙여넣기: 한 줄에 '이름 금액'(탭·쉼표·공백 구분). 한 명으로만 맞는 이름은 바로 넣고 나머지는 아래에 남긴다. */
+	async function importBank() {
+		if (!cur) return;
+		const rows = imp.text
+			.split(/\r?\n/)
+			.map((l) => l.trim())
+			.filter(Boolean)
+			.map((l) => {
+				const m = l.match(/^(.*?)[\t, ]+([\d,]+)\s*원?$/);
+				return m ? { name: m[1].trim(), amount: Number(m[2].replace(/,/g, '')) } : { name: l, amount: 'x' };
+			});
+		if (!rows.length) return;
+		busy = true;
+		err = '';
+		try {
+			const r = await auth.api<{ added: number; unmatched: typeof imp.unmatched }>('POST', `/offering-batches/${cur.batch.id}/import`, { accountId: f.accountId, rows });
+			notice = `${r.added}건을 계좌이체 헌금으로 넣었어요.` + (r.unmatched.length ? ` 맞지 않은 ${r.unmatched.length}줄은 아래에서 직접 입력해 주세요.` : '');
+			imp = { text: '', unmatched: r.unmatched };
+			await loadList();
+			await open(cur.batch.id);
+		} catch (e) {
+			err = errText(e);
+		} finally {
+			busy = false;
 		}
 	}
 	const delLine = (l: Line) => run(() => auth.api('POST', `/offering-lines/${l.id}/delete`, {}));
@@ -217,6 +244,15 @@
 						<input bind:value={f.memo} placeholder="메모 (선택)" maxlength="255" />
 						<button type="submit" disabled={busy}>입력 (Enter)</button>
 					</form>
+				{/if}
+
+				{#if cur.entry}
+					<details class="no-print" style="margin-bottom:1rem">
+						<summary class="fs-s" style="cursor:pointer">통장 내역 붙여넣기 (계좌이체 헌금 · 위에서 고른 종류로 입력)</summary>
+						<textarea bind:value={imp.text} rows="4" placeholder={'홍길동 100000\n김철수, 50,000'} style="margin:.4rem 0"></textarea>
+						<button class="sm" type="button" disabled={busy || !imp.text.trim()} onclick={importBank}>맞춰서 넣기</button>
+						{#if imp.unmatched.length}<ul class="fs-s">{#each imp.unmatched as u}<li>{u.name} {u.amount} — {u.why}</li>{/each}</ul>{/if}
+					</details>
 				{/if}
 
 				<div class="scroll-x">

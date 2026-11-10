@@ -144,6 +144,7 @@
 					<a href={hrefTo('/vouchers')} class:active={path.startsWith('/vouchers')}>결의서</a>
 					<a href={hrefTo('/approvals')} class:active={path.startsWith('/approvals')}>결재함</a>
 					{#if isStaff}<a href={hrefTo('/receipts')} class:active={path.startsWith('/receipts')}>영수증</a>{/if}
+					{#if canLedger}<a href={hrefTo('/closing')} class:active={path.startsWith('/closing')}>마감</a>{/if}
 					{#if canLedger}<a href={hrefTo('/ledger')} class:active={path.startsWith('/ledger')}>장부</a>{/if}
 					{#if canBudget}<a href={hrefTo('/budget')} class:active={path.startsWith('/budget')}>예산</a>{/if}
 					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
@@ -154,6 +155,7 @@
 					{#if isAdmin}
 						<a href={hrefTo('/admin/users')} class:active={path.startsWith('/admin/users')}>재정 사용 승인</a>
 						<a href={hrefTo('/admin/rules')} class:active={path.startsWith('/admin/rules')}>결재 규칙</a>
+						<a href={hrefTo('/admin/backup')} class:active={path.startsWith('/admin/backup')}>백업</a>
 					{/if}
 
 					<div class="nav-tools">
