@@ -207,3 +207,27 @@ function change_log(string $entity, string|int $id, string $field, mixed $before
         [$a['access']['id'] ?? null, mb_substr((string)($a['cm']['name'] ?? ''), 0, 50), $entity, (string)$id, $field, $enc($before), $enc($after), $note === '' ? null : mb_substr($note, 0, 255)]
     );
 }
+
+/** 개인별 헌금이 아닌 합계 보고서를 볼 수 있는가 */
+function can_see_totals(array $a): bool
+{
+    return has_role($a, '재정 담당', '재정위원장', '담임목사', '감사', '열람');
+}
+
+/** 날짜가 속한 회계연도(없으면 null) */
+function fiscal_year_of(string $date): ?int
+{
+    $y = val('SELECT year FROM ' . t('fiscal_years') . ' WHERE ? BETWEEN start_date AND end_date ORDER BY year DESC LIMIT 1', [$date]);
+    return $y === false || $y === null ? null : (int)$y;
+}
+
+/** 월 마감이 끝난 달인가. 마감된 달의 헌금·거래는 만들거나 고칠 수 없다. */
+function month_closed(string $date): bool
+{
+    return (int)val('SELECT COUNT(*) FROM ' . t('closings') . ' WHERE period = ? AND reopened_at IS NULL', [substr($date, 0, 7)]) > 0;
+}
+
+function require_month_open(string $date): void
+{
+    if (month_closed($date)) json_fail('month_closed', substr($date, 0, 7) . ' 월은 마감되어 고칠 수 없습니다. 마감을 푼 뒤에 다시 시도해 주세요.', 409);
+}
