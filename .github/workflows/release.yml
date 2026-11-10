@@ -1,0 +1,51 @@
+name: Release
+
+# v0.1.0 같은 태그를 올리면 배포용 zip(설치 가이드 PDF 포함)을 만들어 GitHub Releases 에 붙인다.
+# Actions 탭에서 수동으로 실행하면 zip 만 만들어 내려받을 수 있다. (릴리스는 만들지 않는다.)
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: 설치 가이드 PDF 에 쓸 한글 글꼴과 zip 도구
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk zip
+
+      - name: 화면 의존성 설치
+        run: npm ci
+
+      - name: PHP 문법 검사
+        run: |
+          sudo apt-get install -y --no-install-recommends php-cli
+          find server -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
+
+      - name: 배포 zip 만들기
+        run: bash scripts/build-release.sh "${GITHUB_REF_NAME:-dev}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fin-manage-zip
+          path: dist/*.zip
+
+      - name: GitHub 릴리스에 붙이기
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true

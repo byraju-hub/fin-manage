@@ -249,3 +249,5 @@ tr.hit td { background: #fff8e8; }
 	.item-row > button { justify-self: end; }
 	.form.bank-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+.kpi b .of { display: inline; margin-left: 0.2rem; }

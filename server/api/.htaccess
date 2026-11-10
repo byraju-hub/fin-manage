@@ -1,0 +1,23 @@
+# 존재하지 않는 주소는 모두 index.php 로 보낸다. (사이트 폴더의 .htaccess 규칙보다 이 규칙이 우선한다.)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # http 로 들어오면 https 로 (비밀번호와 교적이 암호화 없이 오가지 않게). localhost 시험은 제외
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:\d+)?$ [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+# lib/, controllers/ 안의 PHP 는 직접 열 수 없게 한다.
+<FilesMatch "^(?!index\.php$).*\.php$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+

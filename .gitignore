@@ -1,4 +1,41 @@
-design/shots/
-node_modules/
+node_modules
+
+# Output
+.output
+/.svelte-kit
+/build
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# 실제 교인·헌금 정보가 들어 있을 수 있는 자료는 저장소에 올리지 않음
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+/private-data/
+# 진짜 교회 직인 등 공개하면 안 되는 이미지
+/static/private/
+
+# 설치하면 생기는 것(DB 접속 정보·로그·세션·증빙 파일)은 저장소에 올리지 않음
+/server/data/*
+!/server/data/.htaccess
+
+# 배포용 zip 만드는 곳
+/dist/
+
+# 화면 시안 이미지 · 로컬 개발용 교적(ch-manage) 사본
+/design/shots/
+/dev/
+# 개발 중 설치 마법사가 만드는 주소 처리 파일 (배포 zip 에서는 설치 때 새로 만들어짐)
+/server/.htaccess
