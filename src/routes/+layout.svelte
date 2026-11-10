@@ -26,6 +26,25 @@
 	const me = $derived(auth.me);
 	const active = $derived(me?.state === 'active');
 	const path = $derived(stripBase(page.url.pathname));
+	const isAdmin = $derived(!!me?.access?.isAdmin);
+	const isStaff = $derived(isAdmin || !!me?.access?.roles.includes('재정 담당'));
+	let rcPw = $state('');
+	let rcMsg = $state('');
+	let rcBusy = $state(false);
+	async function doReconfirm(e: SubmitEvent) {
+		e.preventDefault();
+		rcMsg = '';
+		rcBusy = true;
+		try {
+			await auth.submitReconfirm(rcPw);
+			rcPw = '';
+		} catch (err) {
+			rcMsg = errMsg(err, '확인하지 못했습니다.');
+			rcPw = '';
+		} finally {
+			rcBusy = false;
+		}
+	}
 	const roleLabel = $derived(me?.access?.isAdmin ? '재정 관리자' : (me?.access?.roles[0] ?? ''));
 
 	onMount(() => {
@@ -117,6 +136,13 @@
 
 				<nav class="main-nav" class:open={menuOpen} aria-label="주 메뉴">
 					<a href={hrefTo('/')} class:active={path === '/'}>대시보드</a>
+					{#if isStaff}
+						<a href={hrefTo('/units')} class:active={path.startsWith('/units')}>재정 단위</a>
+						<a href={hrefTo('/base')} class:active={path.startsWith('/base')}>기준 자료</a>
+					{/if}
+					{#if isAdmin}
+						<a href={hrefTo('/admin/users')} class:active={path.startsWith('/admin/users')}>재정 사용 승인</a>
+					{/if}
 
 					<div class="nav-tools">
 						<div class="perm">
@@ -218,6 +244,19 @@
 			</button>
 		</nav>
 	{/if}
+
+	<div class="modal-bg" class:open={auth.reconfirmOpen}>
+		<form class="modal" onsubmit={doReconfirm}>
+			<h3>비밀번호 확인</h3>
+			<p class="muted fs-s">중요한 작업이라 교적 비밀번호를 한 번 더 확인합니다. (10분 동안 유효)</p>
+			<input type="password" bind:value={rcPw} placeholder="비밀번호" autocomplete="current-password" required />
+			{#if rcMsg}<p style="color:#a83c10;font-size:.88rem;margin:.5rem 0 0">{rcMsg}</p>{/if}
+			<div class="row">
+				<button type="button" class="ghost" onclick={() => auth.submitReconfirm(null)}>취소</button>
+				<button type="submit" disabled={rcBusy}>확인</button>
+			</div>
+		</form>
+	</div>
 
 	<footer class="site-footer">
 		<div class="foot">

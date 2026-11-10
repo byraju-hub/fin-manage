@@ -99,6 +99,36 @@ class Auth {
 		this.apply(await this.api<MePayload>('GET', '/auth/me'));
 	}
 
+	/** 중요한 작업: 서버가 비밀번호 재확인을 요구하면 확인 창을 띄우고, 맞으면 한 번 더 시도한다 */
+	reconfirmOpen = $state(false);
+	private reconfirmDone: ((ok: boolean) => void) | null = null;
+	async guard<T>(fn: () => Promise<T>): Promise<T> {
+		try {
+			return await fn();
+		} catch (e) {
+			if (e instanceof ApiError && e.code === 'reconfirm') {
+				const ok = await new Promise<boolean>((res) => {
+					this.reconfirmDone = res;
+					this.reconfirmOpen = true;
+				});
+				if (ok) return await fn();
+				throw new ApiError('cancelled', '비밀번호 확인을 취소했습니다.', 0);
+			}
+			throw e;
+		}
+	}
+	/** 확인 창에서 호출: 비밀번호를 보내 맞으면 true, 틀리면 오류를 던져 창에 보여 준다. password 가 null 이면 취소 */
+	async submitReconfirm(password: string | null) {
+		if (password === null) {
+			this.reconfirmOpen = false;
+			this.reconfirmDone?.(false);
+			return;
+		}
+		await this.api('POST', '/auth/reconfirm', { password });
+		this.reconfirmOpen = false;
+		this.reconfirmDone?.(true);
+	}
+
 	async requestAccess(reason: string) {
 		await this.api('POST', '/auth/request-access', { reason });
 		await this.refresh();
