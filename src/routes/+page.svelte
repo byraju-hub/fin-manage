@@ -2,12 +2,16 @@
 	// 첫 화면 (M0): 교적 연결 상태와 교인 수. 헌금·결재·예산 카드는 이후 단계에서 채운다.
 	import { onMount } from 'svelte';
 	import { auth } from '#lib/auth.svelte.ts';
+	import { hrefTo } from '#lib/paths.ts';
 
 	type Dash = {
 		cm: { ok: boolean; reason: string; message: string; schema: number; people: number; churchName: string };
 		fm: { version: string; schema: number };
 		rrnMode: string;
 		isAdmin: boolean;
+		waiting: number;
+		toPay: number;
+		openBatches: number;
 	};
 	let d = $state<Dash | null>(null);
 	let err = $state('');

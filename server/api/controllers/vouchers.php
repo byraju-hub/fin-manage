@@ -277,8 +277,8 @@ route('GET', '/vouchers', function () {
 });
 
 /** 내 결재함: 내가 결재할 차례인 것(본인·대결), 사후 확인할 것 */
-route('GET', '/approvals/inbox', function () {
-    $a = require_account();
+function inbox_cards(array $a): array
+{
     $pid = $a['cm']['person_id'] ?? null;
     $wait = [];
     $confirm = [];
@@ -292,7 +292,11 @@ route('GET', '/approvals/inbox', function () {
             foreach (rows('SELECT * FROM ' . t('approval_steps') . " WHERE voucher_id = ? AND round = ? AND mode = '확인' AND status = '대기'", [$v['id'], $v['round']]) as $s) if (step_actor($a, $s)) $confirm[] = $card + ['role' => $s['role']];
         }
     }
-    json_out(['waiting' => $wait, 'confirm' => $confirm]);
+    return ['waiting' => $wait, 'confirm' => $confirm];
+}
+
+route('GET', '/approvals/inbox', function () {
+    json_out(inbox_cards(require_account()));
 });
 
 route('GET', '/vouchers/{id}', function (int $id) {

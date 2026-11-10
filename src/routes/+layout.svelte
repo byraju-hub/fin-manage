@@ -141,6 +141,8 @@
 				<nav class="main-nav" class:open={menuOpen} aria-label="주 메뉴">
 					<a href={hrefTo('/')} class:active={path === '/'}>대시보드</a>
 					{#if canOffer}<a href={hrefTo('/offerings')} class:active={path.startsWith('/offerings')}>헌금</a>{/if}
+					<a href={hrefTo('/vouchers')} class:active={path.startsWith('/vouchers')}>결의서</a>
+					<a href={hrefTo('/approvals')} class:active={path.startsWith('/approvals')}>결재함</a>
 					{#if canLedger}<a href={hrefTo('/ledger')} class:active={path.startsWith('/ledger')}>장부</a>{/if}
 					{#if canBudget}<a href={hrefTo('/budget')} class:active={path.startsWith('/budget')}>예산</a>{/if}
 					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
@@ -150,6 +152,7 @@
 					{/if}
 					{#if isAdmin}
 						<a href={hrefTo('/admin/users')} class:active={path.startsWith('/admin/users')}>재정 사용 승인</a>
+						<a href={hrefTo('/admin/rules')} class:active={path.startsWith('/admin/rules')}>결재 규칙</a>
 					{/if}
 
 					<div class="nav-tools">

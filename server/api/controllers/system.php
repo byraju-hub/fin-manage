@@ -13,5 +13,8 @@ route('GET', '/dashboard', function () {
         'fm' => ['version' => FM_VERSION, 'schema' => current_schema_version(db(), fm_config()['prefix'])],
         'rrnMode' => (string)val('SELECT rrn_mode FROM ' . t('settings') . ' WHERE id = 1'),
         'isAdmin' => is_admin_account($a),
+        'waiting' => count(inbox_cards($a)['waiting']),
+        'toPay' => has_role($a, '재정 담당') ? (int)val('SELECT COUNT(*) FROM ' . t('vouchers') . " WHERE status = '결재 완료'") : 0,
+        'openBatches' => has_role($a, '재정 담당') ? (int)val('SELECT COUNT(*) FROM ' . t('offering_batches') . " WHERE status = '입력 중'") : 0,
     ]);
 });
