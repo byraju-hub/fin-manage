@@ -30,6 +30,8 @@
 	const isStaff = $derived(isAdmin || !!me?.access?.roles.includes('재정 담당'));
 	const canOffer = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '계수 위원', '재정위원장', '담임목사', '감사', '열람'].includes(r)));
 	const canReport = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)) || !!me?.access?.canViewDonors);
+	const canLedger = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사'].includes(r)));
+	const canBudget = $derived(!!me?.access?.roles.length || isAdmin || !!me?.access);
 	let rcPw = $state('');
 	let rcMsg = $state('');
 	let rcBusy = $state(false);
@@ -139,6 +141,8 @@
 				<nav class="main-nav" class:open={menuOpen} aria-label="주 메뉴">
 					<a href={hrefTo('/')} class:active={path === '/'}>대시보드</a>
 					{#if canOffer}<a href={hrefTo('/offerings')} class:active={path.startsWith('/offerings')}>헌금</a>{/if}
+					{#if canLedger}<a href={hrefTo('/ledger')} class:active={path.startsWith('/ledger')}>장부</a>{/if}
+					{#if canBudget}<a href={hrefTo('/budget')} class:active={path.startsWith('/budget')}>예산</a>{/if}
 					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
 					{#if isStaff}
 						<a href={hrefTo('/units')} class:active={path.startsWith('/units')}>재정 단위</a>
