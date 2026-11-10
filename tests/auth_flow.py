@@ -7,7 +7,7 @@ MYSQL = r'C:\xampp\mysql\bin\mysql.exe'
 PW = 'testpass1234'
 fails = 0
 
-def sql(q): return subprocess.run([MYSQL, '-uroot', 'church_dev', '-N', '-e', q], capture_output=True, text=True, encoding='utf-8').stdout.strip()
+def sql(q): return subprocess.run([MYSQL, '-uroot', '--default-character-set=utf8mb4', 'church_dev', '-N'], input=q, capture_output=True, text=True, encoding='utf-8').stdout.strip()  # 한글이 깨지지 않게 표준입력으로 보냄
 
 class Client:
     def __init__(s):

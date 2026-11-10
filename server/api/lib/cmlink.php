@@ -10,7 +10,7 @@ const FM_MIN_CM_SCHEMA = 6;
 /** 재정이 읽는 교적 표와 열. 하나라도 없으면 교적 구조가 달라진 것이므로 연결을 막고 이유를 알려 준다. */
 const FM_CM_REQUIRED = [
     'users' => ['id', 'login_id', 'password_hash', 'name', 'person_id', 'status', 'is_super', 'session_epoch', 'must_change_password', 'is_demo'],
-    'people' => ['id', 'name', 'birth_date', 'gender', 'phone', 'address_zip', 'address1', 'address2', 'category_id'],
+    'people' => ['id', 'name', 'birth_date', 'gender', 'phone', 'address_zip', 'address1', 'address2', 'category_id', 'name_note', 'purged_on'],
     'households' => ['id', 'no'],
     'household_members' => ['household_id', 'person_id', 'relation'],
     'org_units' => ['id', 'parent_id', 'name', 'leader_id', 'sort_order'],

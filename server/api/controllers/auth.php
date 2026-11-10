@@ -76,3 +76,19 @@ route('POST', '/auth/request-access', function () {
     audit('재정 사용 신청', $a['cm']['login_id'], $a);
     json_out(null);
 });
+
+/** 비밀번호 다시 확인 (교적 비밀번호). 맞으면 10분 동안 중요한 작업을 할 수 있다. */
+route('POST', '/auth/reconfirm', function () {
+    $a = require_account();
+    $pw = (string)(body()['password'] ?? '');
+    $loginId = $a['cm']['login_id'];
+    if ($pw === '' || strlen($pw) > 200) json_fail('invalid', '비밀번호를 입력해 주세요.', 422);
+    if (login_throttled($loginId)) json_fail('throttled', '여러 번 틀려서 잠시 막았습니다. 15분 뒤에 다시 시도해 주세요.', 429);
+    $hash = (string)val('SELECT password_hash FROM ' . cmt('users') . ' WHERE id = ?', [$a['cm']['id']]);
+    if (!password_verify($pw, $hash)) {
+        q('INSERT INTO ' . t('login_attempts') . ' (ip, login_id) VALUES (?, ?)', [client_ip(), $loginId]);
+        json_fail('invalid_login', '비밀번호가 맞지 않습니다.', 401);
+    }
+    $_SESSION['reconfirm_at'] = time();
+    json_out(null);
+});

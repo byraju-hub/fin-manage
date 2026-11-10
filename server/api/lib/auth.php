@@ -178,3 +178,32 @@ function audit(string $action, string $target = '', ?array $acct = null): void
         fm_log('error', 'audit: ' . $e->getMessage());
     }
 }
+
+/** 중요한 동작(권한 변경 등) 전에 최근 10분 안에 비밀번호를 다시 확인했는가. 설정에서 끌 수 있다. */
+function require_reconfirm(): void
+{
+    $sec = json_decode((string)val('SELECT security FROM ' . t('settings') . ' WHERE id = 1'), true) ?: [];
+    if (empty($sec['reconfirm'])) return;
+    if (time() - (int)($_SESSION['reconfirm_at'] ?? 0) > 600) {
+        json_fail('reconfirm', '중요한 작업이라 비밀번호를 한 번 더 확인합니다.', 403);
+    }
+}
+
+/** 재정 기준 자료를 고칠 수 있는 사람: 재정 관리자 또는 재정 담당 */
+function require_staff(): array
+{
+    $a = require_account();
+    if (!is_admin_account($a) && !has_role($a, '재정 담당')) json_fail('forbidden', '재정 관리자 또는 재정 담당만 할 수 있습니다.', 403);
+    return $a;
+}
+
+/** 변경 기록 (수정 전후 값) */
+function change_log(string $entity, string|int $id, string $field, mixed $before, mixed $after, string $note = ''): void
+{
+    $a = current_account();
+    $enc = fn($v) => $v === null ? null : (is_scalar($v) ? (string)$v : json_encode($v, JSON_UNESCAPED_UNICODE));
+    q(
+        'INSERT INTO ' . t('change_log') . ' (by_access_id, by_name, entity, entity_id, field, before_value, after_value, note) VALUES (?,?,?,?,?,?,?,?)',
+        [$a['access']['id'] ?? null, mb_substr((string)($a['cm']['name'] ?? ''), 0, 50), $entity, (string)$id, $field, $enc($before), $enc($after), $note === '' ? null : mb_substr($note, 0, 255)]
+    );
+}
