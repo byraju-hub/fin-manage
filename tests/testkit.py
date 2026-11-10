@@ -14,6 +14,14 @@ def finish():
 
 def wipe():
     """시험이 만든 모든 것을 지운다 (시험 계정 t_*, 시험 연도, 시험 이름 자료)."""
+    Y = "(2097,2098,2099)"
+    sql(f"delete from fm_voucher_items where voucher_id in (select id from fm_vouchers where fiscal_year in {Y})")
+    sql(f"delete from fm_vouchers where fiscal_year in {Y}")
+    sql(f"delete from fm_transactions where fiscal_year in {Y}")
+    sql(f"delete from fm_budget_changes where fiscal_year in {Y}")
+    sql(f"delete from fm_income_budgets where fiscal_year in {Y}")
+    sql(f"delete from fm_offerings where batch_id in (select id from fm_offering_batches where fiscal_year in {Y})")
+    sql(f"delete from fm_offering_batches where fiscal_year in {Y}")
     sql("delete from fm_receipts where tax_year in (2097,2098) or donor_id in (select id from fm_donors where name like '시험%')")
     sql("delete from fm_voucher_items where voucher_id in (select id from fm_vouchers where title like '시험%')")
     sql("delete from fm_vouchers where title like '시험%'")
