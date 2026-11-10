@@ -11,10 +11,29 @@
 	let busy = $state(false);
 	let word = $state('');
 	let file = $state<File | null>(null);
+	let sample = $state<{ loaded: boolean; busy: string | null; info: { counts: Record<string, number>; at: string } | null; cmPeople: number } | null>(null);
+	const loadSample = async () => (sample = await auth.api('GET', '/admin/sample'));
+	async function sampleAct(kind: 'load' | 'clear') {
+		const msg = kind === 'load' ? '교적의 교인으로 연습용 재정 자료(예산·헌금·장부·결의서·영수증 대상)를 올립니다. 진행할까요?' : '샘플로 올린 재정 자료를 모두 지웁니다. 샘플 이후에 직접 입력한 자료도 함께 지워지니 실제 자료를 넣기 전에만 쓰세요. 진행할까요?';
+		if (!confirm(msg)) return;
+		busy = true;
+		err = '';
+		notice = '';
+		try {
+			await auth.guard(() => auth.api('POST', '/admin/sample/' + kind, {}));
+			notice = kind === 'load' ? '샘플 자료를 올렸어요. 헌금·장부·예산·결의서·영수증(작년) 화면에서 확인해 보세요.' : '샘플 자료를 지웠어요.';
+			await loadSample();
+		} catch (e) {
+			if (!(e instanceof Error && e.message.includes('취소'))) err = errText(e);
+		} finally {
+			busy = false;
+		}
+	}
 
 	onMount(async () => {
 		try {
 			info = await auth.api('GET', '/backup/info');
+			await loadSample();
 		} catch (e) {
 			err = errText(e);
 		}
@@ -90,4 +109,18 @@
 		<input bind:value={word} placeholder="확인 문구: 되살리기" />
 		<button type="button" disabled={busy || !file || word !== '되살리기'} onclick={restore}>되살리기</button>
 	</div>
+</div>
+
+<div class="card">
+	<div class="card-head"><h2>샘플 자료</h2><span class="sub">연습용 · 교적의 교인·조직표를 바탕으로</span></div>
+	{#if sample?.loaded}
+		<p class="fs-s">샘플이 올라와 있어요 ({sample.info?.at}). {sample.info ? Object.entries(sample.info.counts).map(([k, n]) => `${k} ${n}`).join(' · ') : ''}</p>
+		<div class="warn fs-s">샘플을 지우면 재정의 헌금·장부·예산·결의서·헌금자 자료가 모두 지워집니다. 실제 자료를 입력하기 전에 지우세요.</div>
+		<button type="button" class="ghost" disabled={busy} onclick={() => sampleAct('clear')}>샘플 지우기</button>
+	{:else if sample?.busy}
+		<p class="fs-s muted">이미 {sample.busy} 자료가 있어 샘플을 올릴 수 없어요. 샘플은 비어 있는 재정에만 올립니다.</p>
+	{:else}
+		<p class="fs-s muted">교적의 교인 {sample?.cmPeople ?? 0}명 중에서 헌금자·부서 담당자를 뽑아 올해 예산(확정), 최근 8주 헌금, 작년 12개월 헌금(영수증 연습용), 장부, 지출결의서 3건(지급 완료·결재 중·작성 중)을 만듭니다.</p>
+		<button type="button" disabled={busy} onclick={() => sampleAct('load')}>샘플 자료 올리기</button>
+	{/if}
 </div>

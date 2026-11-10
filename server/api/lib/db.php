@@ -74,6 +74,7 @@ function marks(array $values): string
 function tx(callable $fn): mixed
 {
     $pdo = db();
+    if ($pdo->inTransaction()) return $fn(); // 이미 묶음 안이면 바깥 묶음에 합친다 (오류도 바깥에서 한꺼번에 되돌려진다)
     $pdo->beginTransaction();
     try {
         $r = $fn();

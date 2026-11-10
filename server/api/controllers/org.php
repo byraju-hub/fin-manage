@@ -127,11 +127,10 @@ function ensure_special_units(int $year): void
 }
 
 /** 교적 조직표에서 가져오기: 최상위는 위원회, 그 아래는 부서. 이미 가져온 것은 건너뛰고, 위원장·부서장은 교적의 책임자로 미리 채운다. */
-route('POST', '/units/import-cm', function () {
-    require_staff();
-    $year = in_int(body(), 'year', 2000, 2100, '연도');
-    require_year_open($year);
-    $added = tx(function () use ($year) {
+/** 교적 조직표를 그 해 재정 단위로 가져온다. 추가한 개수를 돌려준다. */
+function import_cm_units(int $year): int
+{
+    return tx(function () use ($year) {
         $org = rows('SELECT id, parent_id, name, leader_id, sort_order FROM ' . cmt('org_units') . ' ORDER BY sort_order, seq');
         $map = [];
         foreach (rows('SELECT id, cm_org_unit_id FROM ' . t('units') . ' WHERE fiscal_year = ? AND cm_org_unit_id IS NOT NULL', [$year]) as $r) $map[$r['cm_org_unit_id']] = (int)$r['id'];
@@ -162,6 +161,13 @@ route('POST', '/units/import-cm', function () {
         ensure_special_units($year);
         return $n;
     });
+}
+
+route('POST', '/units/import-cm', function () {
+    require_staff();
+    $year = in_int(body(), 'year', 2000, 2100, '연도');
+    require_year_open($year);
+    $added = import_cm_units($year);
     change_log('units', $year, 'import_cm', null, $added . '개');
     json_out(['added' => $added]);
 });

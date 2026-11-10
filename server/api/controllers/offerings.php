@@ -221,43 +221,47 @@ route('POST', '/offering-batches/{id}/counted', function (int $id) {
     json_out(null);
 });
 
+/** 헌금 묶음을 마감하고 장부에 수입으로 올린다. 반드시 tx() 안에서 부른다. (화면 마감과 가져오기 마감이 함께 쓴다.) */
+function close_batch_in_tx(int $id, array $a, int $cash, int $bank, string $reason): void
+{
+    $batch = row('SELECT * FROM ' . t('offering_batches') . ' WHERE id = ? FOR UPDATE', [$id]);
+    if (!$batch) json_fail('not_found', '헌금 묶음을 찾을 수 없습니다.', 404);
+    if ($batch['status'] !== '입력 중') json_fail('invalid_state', '이미 마감된 묶음입니다.', 409);
+    require_month_open($batch['batch_date']);
+    $lines = rows('SELECT income_account_id AS a, method, unit_id, SUM(amount) AS s FROM ' . t('offerings') . ' WHERE batch_id = ? GROUP BY income_account_id, method, unit_id', [$id]);
+    if (!$lines) json_fail('empty', '입력된 헌금이 없어 마감할 수 없습니다.', 409);
+    // 대조: 계수 금액을 적은 종류는 입력 합계와 같아야 하고, 다르면 사유가 필요하다
+    $counted = $batch['counted'] ? json_decode((string)$batch['counted'], true) : [];
+    $sums = [];
+    foreach ($lines as $l) $sums[(int)$l['a']] = ($sums[(int)$l['a']] ?? 0) + (int)$l['s'];
+    $diff = false;
+    foreach ($counted as $acct => $c) if (($sums[(int)$acct] ?? 0) !== (int)$c) $diff = true;
+    if ($diff && $reason === '') json_fail('diff_reason', '입력한 합계와 실제 센 금액이 달라요. 마감하려면 차이의 사유를 적어 주세요.', 422);
+    foreach ($lines as $l) {
+        $w = $l['method'] === '현금' ? $cash : $bank;
+        if (!$w) json_fail('wallet', ($l['method'] === '현금' ? '현금' : '통장') . ' 입금 계좌를 골라 주세요.', 422);
+    }
+    foreach (array_unique([$cash, $bank]) as $w) {
+        if ($w && !val('SELECT COUNT(*) FROM ' . t('wallets') . ' WHERE id = ? AND is_active = 1', [$w])) json_fail('wallet', '계좌가 올바르지 않습니다.', 422);
+    }
+    $names = array_column(rows('SELECT id, name FROM ' . t('income_accounts')), 'name', 'id');
+    foreach ($lines as $l) {
+        $wid = $l['method'] === '현금' ? $cash : $bank;
+        $w = row('SELECT fund_id FROM ' . t('wallets') . ' WHERE id = ?', [$wid]);
+        q('INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, income_account_id, unit_id, amount, summary, source, source_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+            [$batch['fiscal_year'], $batch['batch_date'], '수입', $w['fund_id'], $wid, $l['a'], $l['unit_id'], $l['s'], ($names[$l['a']] ?? '') . ' (' . $batch['kind'] . ')', '헌금', $id, $a['access']['id']]);
+    }
+    q('UPDATE ' . t('offering_batches') . " SET status='마감', diff_reason=?, closed_at=NOW(), closed_by=? WHERE id=?", [$reason ?: null, $a['access']['id'], $id]);
+    change_log('offering_batch', $id, 'close', '입력 중', '마감', $reason);
+}
+
 route('POST', '/offering-batches/{id}/close', function (int $id) {
     $a = require_role('재정 담당');
     $b = body();
-    tx(function () use ($id, $a, $b) {
-        $batch = row('SELECT * FROM ' . t('offering_batches') . ' WHERE id = ? FOR UPDATE', [$id]);
-        if (!$batch) json_fail('not_found', '헌금 묶음을 찾을 수 없습니다.', 404);
-        if ($batch['status'] !== '입력 중') json_fail('invalid_state', '이미 마감된 묶음입니다.', 409);
-        require_month_open($batch['batch_date']);
-        $lines = rows('SELECT income_account_id AS a, method, unit_id, SUM(amount) AS s FROM ' . t('offerings') . ' WHERE batch_id = ? GROUP BY income_account_id, method, unit_id', [$id]);
-        if (!$lines) json_fail('empty', '입력된 헌금이 없어 마감할 수 없습니다.', 409);
-        // 대조: 계수 금액을 적은 종류는 입력 합계와 같아야 하고, 다르면 사유가 필요하다
-        $counted = $batch['counted'] ? json_decode((string)$batch['counted'], true) : [];
-        $sums = [];
-        foreach ($lines as $l) $sums[(int)$l['a']] = ($sums[(int)$l['a']] ?? 0) + (int)$l['s'];
-        $diff = false;
-        foreach ($counted as $acct => $c) if (($sums[(int)$acct] ?? 0) !== (int)$c) $diff = true;
-        $reason = in_str($b, 'diffReason', 255);
-        if ($diff && $reason === '') json_fail('diff_reason', '입력한 합계와 실제 센 금액이 달라요. 마감하려면 차이의 사유를 적어 주세요.', 422);
-        $cash = isset($b['cashWalletId']) ? (int)$b['cashWalletId'] : 0;
-        $bank = isset($b['bankWalletId']) ? (int)$b['bankWalletId'] : 0;
-        foreach ($lines as $l) {
-            $w = $l['method'] === '현금' ? $cash : $bank;
-            if (!$w) json_fail('wallet', ($l['method'] === '현금' ? '현금' : '통장') . ' 입금 계좌를 골라 주세요.', 422);
-        }
-        foreach (array_unique([$cash, $bank]) as $w) {
-            if ($w && !val('SELECT COUNT(*) FROM ' . t('wallets') . ' WHERE id = ? AND is_active = 1', [$w])) json_fail('wallet', '계좌가 올바르지 않습니다.', 422);
-        }
-        $names = array_column(rows('SELECT id, name FROM ' . t('income_accounts')), 'name', 'id');
-        foreach ($lines as $l) {
-            $wid = $l['method'] === '현금' ? $cash : $bank;
-            $w = row('SELECT fund_id FROM ' . t('wallets') . ' WHERE id = ?', [$wid]);
-            q('INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, income_account_id, unit_id, amount, summary, source, source_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-                [$batch['fiscal_year'], $batch['batch_date'], '수입', $w['fund_id'], $wid, $l['a'], $l['unit_id'], $l['s'], ($names[$l['a']] ?? '') . ' (' . $batch['kind'] . ')', '헌금', $id, $a['access']['id']]);
-        }
-        q('UPDATE ' . t('offering_batches') . " SET status='마감', diff_reason=?, closed_at=NOW(), closed_by=? WHERE id=?", [$reason ?: null, $a['access']['id'], $id]);
-        change_log('offering_batch', $id, 'close', '입력 중', '마감', $reason);
-    });
+    $reason = in_str($b, 'diffReason', 255);
+    $cash = isset($b['cashWalletId']) ? (int)$b['cashWalletId'] : 0;
+    $bank = isset($b['bankWalletId']) ? (int)$b['bankWalletId'] : 0;
+    tx(fn() => close_batch_in_tx($id, $a, $cash, $bank, $reason));
     json_out(null);
 });
 
