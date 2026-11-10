@@ -32,6 +32,28 @@
 	const canReport = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)) || !!me?.access?.canViewDonors);
 	const canLedger = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사'].includes(r)));
 	const canBudget = $derived(!!me?.access?.roles.length || isAdmin || !!me?.access);
+	const isOn = (to: string) => path === to || path.startsWith(to + '/');
+	/** 상단 메뉴: 하는 일별로 묶고, 권한이 없는 항목은 뺀다. 항목이 하나뿐인 묶음은 바로 가기 링크로 보인다. */
+	const groups = $derived.by(() => {
+		type It = { to: string; label: string; hint: string };
+		const g: { name: string; direct?: boolean; items: It[] }[] = [];
+		const add = (name: string, items: (It | false)[], direct = false) => {
+			const list = items.filter((x): x is It => !!x);
+			if (list.length) g.push({ name, items: list, direct });
+		};
+		add('헌금', [canOffer && { to: '/offerings', label: '헌금 입력', hint: '묶음·빠른 입력·대조·마감' }, isStaff && { to: '/receipts', label: '기부금 영수증', hint: '연말 발급·발급 대장' }]);
+		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }]);
+		add('장부', [canLedger && { to: '/ledger', label: '장부', hint: '수입·지출·이체·계좌 잔액' }, canBudget && { to: '/budget', label: '예산', hint: '편성·확정·추경·집행' }, canLedger && { to: '/closing', label: '마감', hint: '월 마감·연 마감·이월' }]);
+		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '' }], true);
+		add('설정', [
+			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
+			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
+			isAdmin && { to: '/admin/users', label: '재정 사용 승인', hint: '신청 승인·역할·열람 지정' },
+			isAdmin && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' },
+			isAdmin && { to: '/admin/backup', label: '백업', hint: '내려받기·되살리기' }
+		]);
+		return g;
+	});
 	let rcPw = $state('');
 	let rcMsg = $state('');
 	let rcBusy = $state(false);
@@ -140,23 +162,21 @@
 
 				<nav class="main-nav" class:open={menuOpen} aria-label="주 메뉴">
 					<a href={hrefTo('/')} class:active={path === '/'}>대시보드</a>
-					{#if canOffer}<a href={hrefTo('/offerings')} class:active={path.startsWith('/offerings')}>헌금</a>{/if}
-					<a href={hrefTo('/vouchers')} class:active={path.startsWith('/vouchers')}>결의서</a>
-					<a href={hrefTo('/approvals')} class:active={path.startsWith('/approvals')}>결재함</a>
-					{#if isStaff}<a href={hrefTo('/receipts')} class:active={path.startsWith('/receipts')}>영수증</a>{/if}
-					{#if canLedger}<a href={hrefTo('/closing')} class:active={path.startsWith('/closing')}>마감</a>{/if}
-					{#if canLedger}<a href={hrefTo('/ledger')} class:active={path.startsWith('/ledger')}>장부</a>{/if}
-					{#if canBudget}<a href={hrefTo('/budget')} class:active={path.startsWith('/budget')}>예산</a>{/if}
-					{#if canReport}<a href={hrefTo('/reports')} class:active={path.startsWith('/reports')}>보고서</a>{/if}
-					{#if isStaff}
-						<a href={hrefTo('/units')} class:active={path.startsWith('/units')}>재정 단위</a>
-						<a href={hrefTo('/base')} class:active={path.startsWith('/base')}>기준 자료</a>
-					{/if}
-					{#if isAdmin}
-						<a href={hrefTo('/admin/users')} class:active={path.startsWith('/admin/users')}>재정 사용 승인</a>
-						<a href={hrefTo('/admin/rules')} class:active={path.startsWith('/admin/rules')}>결재 규칙</a>
-						<a href={hrefTo('/admin/backup')} class:active={path.startsWith('/admin/backup')}>백업</a>
-					{/if}
+					{#each groups as g (g.name)}
+						{#if g.items.length === 1 && g.direct}
+							<a href={hrefTo(g.items[0].to)} class:active={isOn(g.items[0].to)}>{g.items[0].label}</a>
+						{:else}
+							<div class="dd" class:active={g.items.some((i) => isOn(i.to))}>
+								<button type="button" class="dd-btn" aria-haspopup="true">{g.name}
+									<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+								<div class="dd-menu">
+									{#each g.items as i (i.to)}
+										<a href={hrefTo(i.to)} class:active={isOn(i.to)}><b>{i.label}</b><small>{i.hint}</small></a>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					{/each}
 
 					<div class="nav-tools">
 						<div class="perm">
