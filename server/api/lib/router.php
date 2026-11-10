@@ -9,7 +9,7 @@ $GLOBALS['fm_routes'] = [];
 
 function route(string $method, string $pattern, callable $handler): void
 {
-    $rx = str_replace('{id}', '(\d+)', $pattern);
+    $rx = str_replace(['{id}', '{period}'], ['(\d+)', '(\d{4}-\d{2})'], $pattern);
     $GLOBALS['fm_routes'][] = [$method, '#^' . $rx . '$#', $handler];
 }
 

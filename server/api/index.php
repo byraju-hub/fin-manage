@@ -21,7 +21,7 @@ if (!fm_config()) {
 }
 
 require __DIR__ . '/lib/migrate.php';
-foreach (['auth', 'system', 'admin', 'base', 'org', 'offerings', 'budget', 'ledger', 'vouchers', 'receipts'] as $c) {
+foreach (['auth', 'system', 'admin', 'base', 'org', 'offerings', 'budget', 'ledger', 'vouchers', 'receipts', 'closing', 'backup'] as $c) {
     require __DIR__ . '/controllers/' . $c . '.php';
 }
 

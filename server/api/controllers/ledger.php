@@ -21,8 +21,8 @@ function wallet_balances(?string $asOf = null): array
     foreach ($w as $x) $bal[(int)$x['id']] = (int)$x['opening_balance'];
     foreach (rows('SELECT wallet_id, kind, SUM(amount) AS s FROM ' . t('transactions') . ' WHERE void_at IS NULL' . $cond . ' GROUP BY wallet_id, kind', $p) as $r) {
         $s = (int)$r['s'];
-        if ($r['kind'] === '수입' || $r['kind'] === '이월') $bal[(int)$r['wallet_id']] += $s;
-        else $bal[(int)$r['wallet_id']] -= $s; // 지출·이체(보내는 쪽)
+        if ($r['kind'] === '수입') $bal[(int)$r['wallet_id']] += $s;
+        elseif ($r['kind'] !== '이월') $bal[(int)$r['wallet_id']] -= $s; // 지출·이체(보내는 쪽). 이월은 장부에 보이는 기록일 뿐 잔액은 이어져 있어 더하지 않는다.
     }
     foreach (rows('SELECT to_wallet_id, SUM(amount) AS s FROM ' . t('transactions') . " WHERE void_at IS NULL AND kind = '이체' AND to_wallet_id IS NOT NULL" . $cond . ' GROUP BY to_wallet_id', $p) as $r) $bal[(int)$r['to_wallet_id']] += (int)$r['s'];
     return array_map(fn($x) => ['id' => (int)$x['id'], 'name' => $x['name'], 'kind' => $x['kind'], 'active' => (int)$x['is_active'] === 1, 'balance' => $bal[(int)$x['id']]], $w);
