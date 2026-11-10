@@ -29,5 +29,8 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/byraju-hub/fin-manage.git"
+	},
+	"dependencies": {
+		"read-excel-file": "^9.3.10"
 	}
 }
