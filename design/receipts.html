@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기부금 영수증 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="receipts" data-role="fin" data-user="김재정" data-title="재정 담당">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 연말정산용 기부금 영수증 발급 화면입니다. 오른쪽 위에서 <b>주민등록번호 방식</b>(교회가 설정에서 고른 값)에 따라 서식이 어떻게 달라지는지 볼 수 있어요. · <a href="index.html">시안 목차</a></div>
+
+	<div class="row page-head">
+		<h1>기부금 영수증</h1>
+		<span class="sp"></span>
+		<div class="row">
+			<select style="width:auto"><option>2025년 기부분</option><option>2024년 기부분</option></select>
+			<div class="seg" data-tabs="rrn"><button type="button" class="on" id="modeB">B 미보관</button><button type="button" id="modeA">A 암호화 보관</button></div>
+		</div>
+	</div>
+
+	<div class="note priv"><span data-i="lock"></span><div><b>개인별 헌금 합계가 보이는 화면입니다.</b> 이 화면을 연 기록과 영수증 발급 기록이 남습니다. 과세 연도는 1월 1일~12월 31일이며 회계연도 설정과 무관합니다.</div></div>
+
+	<div class="two" style="grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)">
+		<div class="card" style="padding:0">
+			<div class="toolbar" style="padding:1rem 1.2rem 0">
+				<input type="search" placeholder="이름 검색">
+				<select><option>전체</option><option>미발급</option><option>발급됨</option><option>금액 변동</option></select>
+			</div>
+			<div class="row" style="padding:0 1.2rem;margin-bottom:.6rem">
+				<span class="muted fs-s">대상 <b>312명</b> · 발급 <b>128</b> · 미발급 <b>183</b> · 금액 변동 <b class="neg">1</b></span>
+				<span class="sp"></span>
+				<button class="ghost sm" type="button">전체 일괄 미리보기</button>
+			</div>
+			<div class="scroll-x"><table class="sm" id="list">
+				<thead><tr><th style="width:2rem"><input type="checkbox"></th><th>헌금자</th><th class="money">영수증 금액</th><th>상태</th></tr></thead>
+				<tbody>
+					<tr class="pick on" data-who="김은혜"><td><input type="checkbox" checked></td><td><b>김은혜</b><br><small class="muted">3구역 · 세대주</small></td><td class="money">14,250,000</td><td><span class="st draft">미발급</span></td></tr>
+					<tr class="pick" data-who="박믿음"><td><input type="checkbox" checked></td><td><b>박믿음</b> <span class="tag part">가족 합산 2명</span><br><small class="muted">박믿음 + 이소망(배우자)</small></td><td class="money">8,300,000</td><td><span class="st draft">미발급</span></td></tr>
+					<tr class="pick" data-who="홍길동"><td><input type="checkbox"></td><td><b>홍길동</b> <span class="tag">A</span><br><small class="muted">5구역</small></td><td class="money">2,400,000</td><td><span class="st paid">발급 · 2025-0017</span></td></tr>
+					<tr class="pick" data-who="최사랑"><td><input type="checkbox"></td><td><b>최사랑</b><br><small class="muted">2구역</small></td><td class="money">1,800,000</td><td><span class="st warn2">금액 변동</span><br><small class="neg">발급 후 헌금 정정 +100,000</small></td></tr>
+					<tr class="pick" data-who="정평안"><td><input type="checkbox" checked></td><td><b>정평안</b><br><small class="muted">7구역</small></td><td class="money">960,000</td><td><span class="st draft">미발급</span></td></tr>
+					<tr class="pick" data-who="한소망"><td><input type="checkbox"></td><td><b>한소망</b> <span class="tag">교인 아님</span><br><small class="muted">주소 미입력</small></td><td class="money">600,000</td><td><span class="st warn2">정보 부족</span></td></tr>
+				</tbody>
+			</table></div>
+			<div class="row" style="padding:.9rem 1.2rem 1.1rem">
+				<span class="muted fs-s">선택 <b id="selcnt">3</b>명</span><span class="sp"></span>
+				<button type="button">선택 발급 (PDF 묶음)</button>
+			</div>
+		</div>
+
+		<div class="sticky-col">
+			<div class="paper" id="paper">
+				<div class="no"><span>일련번호 <b>2025-0018</b> (발급할 때 매겨집니다)</span><span>발급일 2026-01-12</span></div>
+				<h3>기 부 금 영 수 증</h3>
+				<div class="sec-t">① 기부자</div>
+				<table><tbody>
+					<tr><th>성 명</th><td id="pn">김은혜</td><th>주민등록번호</th><td><span class="rrn" id="rrn"></span></td></tr>
+					<tr><th>주 소</th><td colspan="3">경기도 ○○시 ○○로 123, 101동 502호</td></tr>
+				</tbody></table>
+				<div class="sec-t">② 기부금 단체</div>
+				<table><tbody>
+					<tr><th>단 체 명</th><td>샘플교회</td><th>고유번호</th><td>000-00-00000</td></tr>
+					<tr><th>소 재 지</th><td colspan="3">경기도 ○○시 ○○로 1 · 대표자 한은총</td></tr>
+				</tbody></table>
+				<div class="sec-t">③ 기부 내용</div>
+				<table><thead><tr><th>유형</th><th>코드</th><th>기부기간</th><th>내용</th><th>금액</th></tr></thead><tbody>
+					<tr><td>지정기부금</td><td>41</td><td>2025.01.01~12.31</td><td>십일조</td><td class="money">12,000,000</td></tr>
+					<tr><td>지정기부금</td><td>41</td><td>2025.01.01~12.31</td><td>감사헌금</td><td class="money">1,350,000</td></tr>
+					<tr><td>지정기부금</td><td>41</td><td>2025.01.01~12.31</td><td>건축헌금</td><td class="money">900,000</td></tr>
+					<tr><th colspan="4">합 계</th><td class="money"><b>14,250,000</b></td></tr>
+				</tbody></table>
+				<p style="text-align:center;margin:.8rem 0 0">위와 같이 기부금을 기부받았음을 증명합니다.</p>
+				<div class="stamp"><span>2026년 1월 12일<br><b>샘플교회 담임목사 한 은 총</b></span><img src="assets/seal-sample.svg" alt="직인(예시)"></div>
+				<p class="foot2">※ 이 영수증은 소득세 및 법인세 신고 시 기부금 영수증으로 사용할 수 있습니다.</p>
+			</div>
+			<div class="note mt" id="rrnnote"></div>
+			<div class="row"><button type="button">이 영수증 발급</button><button class="ghost" type="button">미리 인쇄</button></div>
+			<p class="muted fs-s mt mb0">발급하면 번호가 매겨지고 발급 당시 내용이 <b>발급 대장</b>에 그대로 남습니다. 발급 뒤 헌금이 정정되면 '금액 변동'으로 알려 주고, 정정 발급하면 이전 영수증은 무효로 표시됩니다.</p>
+		</div>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+<script src="assets/shared.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+function mode(a) {
+	$('modeA').classList.toggle('on', a); $('modeB').classList.toggle('on', !a);
+	$('rrn').innerHTML = a ? '801212-1******' : '801212-<span class="blank"></span>';
+	$('rrnnote').innerHTML = icon('info') + (a
+		? '<div><b>A 방식</b>: 암호화해 저장한 번호를 서버가 풀어 넣습니다. 화면에는 뒷자리를 가리고, 발급할 때마다 사용 기록이 남습니다.</div>'
+		: '<div><b>B 방식</b>: 주민등록번호를 저장하지 않습니다. 생년월일 앞 6자리까지만 찍히고 뒷자리는 비어 있어, 받는 분이 직접 적습니다.</div>');
+}
+$('modeA').onclick = () => mode(true); $('modeB').onclick = () => mode(false); mode(false);
+document.querySelectorAll('#list tr.pick').forEach((tr) => tr.addEventListener('click', (e) => {
+	if (e.target.tagName === 'INPUT') { $('selcnt').textContent = document.querySelectorAll('#list tbody input:checked').length; return; }
+	document.querySelectorAll('#list tr.pick').forEach((x) => x.classList.toggle('on', x === tr)); $('pn').textContent = tr.dataset.who;
+}));
+</script>
+</body>
+</html>

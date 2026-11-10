@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- 공개 사이트용 가상 직인 (진짜 직인이 아님). 진짜 직인은 static/private/church-seal.png 에만 두고 저장소에 올리지 않음 -->
+  <rect x="5" y="5" width="90" height="90" rx="6" fill="none" stroke="#c4161c" stroke-width="5"/>
+  <rect x="13" y="13" width="74" height="74" rx="3" fill="none" stroke="#c4161c" stroke-width="1.5"/>
+  <text x="50" y="45" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="22" font-weight="700" fill="#c4161c">직 인</text>
+  <text x="50" y="72" text-anchor="middle" font-family="Malgun Gothic, sans-serif" font-size="20" font-weight="700" fill="#c4161c">견 본</text>
+</svg>

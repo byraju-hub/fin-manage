@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="login">
+<div class="site">
+<header class="site-header"><div class="bar"><a class="brand" href="index.html"><img class="logo" src="assets/logo.png" alt="" width="38" height="38"><span><b>샘플교회 재정 관리</b></span></a></div></header>
+<main>
+	<div class="mock-bar">시안 보기: 아래에서 로그인 화면의 네 가지 상태를 눌러 볼 수 있습니다 · <a href="index.html">시안 목차</a></div>
+	<div class="row" style="justify-content:center;margin-bottom:1rem" data-tabs="lg">
+		<div class="seg">
+			<button type="button" class="on" data-show="s-login">① 로그인</button>
+			<button type="button" data-show="s-req">② 재정 사용 신청</button>
+			<button type="button" data-show="s-wait">③ 승인 대기</button>
+			<button type="button" data-show="s-nolink">④ 교인 연결 없음</button>
+		</div>
+	</div>
+
+	<div class="card lock">
+		<img src="assets/logo.png" alt="" width="64" height="64" style="display:block;margin:0 auto .8rem;border-radius:18px;box-shadow:0 6px 18px rgba(43,62,149,.25)">
+
+		<div class="state on" id="s-login" data-group="lg">
+			<h2 class="brand-font">샘플교회 재정 관리</h2>
+			<form onsubmit="return false">
+				<input placeholder="아이디" autocomplete="username" style="margin:.25rem 0" value="sujin">
+				<input type="password" placeholder="비밀번호" autocomplete="current-password" style="margin:.25rem 0" value="••••••••">
+				<button type="submit" style="width:100%;margin-top:.5rem">로그인</button>
+			</form>
+			<p class="muted fs-s" style="margin-top:1rem">교적 관리와 <b>같은 아이디·비밀번호</b>로 로그인합니다.<br>재정 사용을 승인받은 분만 들어갈 수 있고,<br>개인별 헌금 열람과 결재는 모두 기록에 남습니다.</p>
+			<div class="linkrow"><a class="btn ghost sm" href="#" onclick="return false">교적 관리로 이동</a></div>
+		</div>
+
+		<div class="state" id="s-req" data-group="lg">
+			<h2>재정 사용 신청</h2>
+			<p class="muted fs-s">교적 계정으로 로그인했지만 아직 재정 사용을 신청하지 않았어요.</p>
+			<div class="who"><span class="avatar">이</span><div style="flex:1"><b>이수진</b> <span class="tag now">교인 연결됨</span><br><small class="muted">교적 아이디 sujin · 1984년생 · 3구역</small></div></div>
+			<form onsubmit="return false" style="text-align:left">
+				<label class="fs-s muted" style="font-weight:600">어떤 일로 쓰시나요? (재정 관리자가 승인할 때 참고합니다)</label>
+				<textarea rows="3" placeholder="예: 유치부 회계 · 지출결의서 작성" style="margin:.3rem 0 .6rem">유치부 회계 · 지출결의서 작성</textarea>
+				<button type="submit" style="width:100%">재정 사용 신청</button>
+			</form>
+			<div class="linkrow"><button class="ghost sm" type="button">로그아웃</button></div>
+		</div>
+
+		<div class="state" id="s-wait" data-group="lg">
+			<h2>승인을 기다리고 있어요</h2>
+			<div class="who"><span class="avatar">이</span><div style="flex:1"><b>이수진</b> <span class="tag part">승인 대기</span><br><small class="muted">2026-11-10 신청 · 유치부 회계 · 지출결의서 작성</small></div></div>
+			<p class="muted fs-s">재정 관리자가 승인하고 역할을 정하면 바로 쓸 수 있어요.<br>승인되면 이 화면에서 새로고침해 주세요.</p>
+			<div class="linkrow"><button type="button">새로고침</button><button class="ghost" type="button">로그아웃</button></div>
+		</div>
+
+		<div class="state" id="s-nolink" data-group="lg">
+			<h2>교인과 연결되어 있지 않아요</h2>
+			<div class="warn" style="text-align:left;font-size:.88rem">이 계정은 교적에서 아직 <b>교인과 연결</b>되지 않았습니다. 재정은 결재·담당자를 교인 단위로 관리하므로, 교적 관리자에게 "내 계정을 교인과 연결해 주세요"라고 요청해 주세요.</div>
+			<div class="linkrow"><a class="btn ghost" href="#" onclick="return false">교적 관리로 이동</a><button class="ghost" type="button">로그아웃</button></div>
+		</div>
+	</div>
+</main>
+<footer class="site-footer"><div class="foot"><div class="foot-brand"><b>샘플교회 재정 관리</b><small class="foot-note">로그인과 개인별 헌금 열람은 접속 기록에 남습니다.</small></div><div class="foot-copy"><span>디자인 시안 · 모든 이름은 예시입니다</span></div></div></footer>
+</div>
+<script>
+// 이 화면은 로그인 전이라 공통 상단바 없이 탭 전환만 쓴다
+document.querySelectorAll('[data-tabs]').forEach((box) => box.querySelectorAll('[data-show]').forEach((btn) => btn.addEventListener('click', () => {
+	box.querySelectorAll('[data-show]').forEach((x) => x.classList.toggle('on', x === btn));
+	document.querySelectorAll('.state[data-group="' + box.dataset.tabs + '"]').forEach((s) => s.classList.toggle('on', s.id === btn.dataset.show));
+})));
+</script>
+</body>
+</html>

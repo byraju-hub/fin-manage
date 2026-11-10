@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>결재 규칙 · 설정 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="admin-rules" data-role="fin" data-user="김재정" data-title="재정 관리자">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 금액 기준과 직접 지출 범위를 <b>관리자가 직접 입력·지정</b>하는 화면입니다. 금액을 바꾸면 아래 미리보기가 바로 바뀝니다. · <a href="index.html">시안 목차</a></div>
+
+	<div class="row page-head"><h1>결재 규칙 · 설정</h1></div>
+	<div class="tabs" data-tabs="rl">
+		<button type="button" class="on" data-show="r1">결재 규칙 (금액 구간)</button>
+		<button type="button" data-show="r2">직접 지출</button>
+		<button type="button" data-show="r3">영수증 · 주민등록번호</button>
+	</div>
+
+	<!-- ===== 1. 결재 규칙 ===== -->
+	<div class="state on" id="r1" data-group="rl">
+		<div class="card">
+			<div class="card-head"><h2>금액 구간별 결재선</h2><span class="sub">지출결의서 합계가 속한 구간의 결재선이 적용됩니다</span></div>
+			<div class="scroll-x"><table id="tiers">
+				<thead><tr><th>구간</th><th>금액 기준 <span class="hint">(관리자가 입력)</span></th><th>결재선</th><th style="width:1%"></th></tr></thead>
+				<tbody>
+					<tr data-t="s">
+						<td class="tier-name">소액<small>전결</small></td>
+						<td><div class="won-in">합계 <input id="small" inputmode="numeric" value="100,000"> 원 이하</div></td>
+						<td><div class="steps"><span class="sc">부서장</span><span class="arr">→</span><span class="sc">위원장</span><span class="arr">→</span><span class="sc c">재정위원장 <small>사후 확인</small></span></div></td>
+						<td><button class="ghost xs" type="button">편집</button></td>
+					</tr>
+					<tr data-t="m">
+						<td class="tier-name">일반<small>기본</small></td>
+						<td id="midtxt" class="muted">100,000원 초과 ~ 1,000,000원 미만</td>
+						<td><div class="steps"><span class="sc">부서장</span><span class="arr">→</span><span class="sc">위원장</span><span class="arr">→</span><span class="sc">재정위원장</span></div></td>
+						<td><button class="ghost xs" type="button">편집</button></td>
+					</tr>
+					<tr data-t="b">
+						<td class="tier-name">고액<small>담임목사 결재</small></td>
+						<td><div class="won-in">합계 <input id="big" inputmode="numeric" value="1,000,000"> 원 이상</div></td>
+						<td><div class="steps"><span class="sc">부서장</span><span class="arr">→</span><span class="sc">위원장</span><span class="arr">→</span><span class="sc">재정위원장</span><span class="arr">→</span><span class="sc pastor">담임목사</span></div></td>
+						<td><button class="ghost xs" type="button">편집</button></td>
+					</tr>
+				</tbody>
+			</table></div>
+			<div class="row mt"><button class="ghost sm" type="button">+ 구간 추가</button><span class="muted fs-s">구간은 금액이 작은 것부터 늘릴 수 있습니다. 단계마다 <b>결재</b>(통과해야 다음으로) 또는 <b>사후 확인</b>(지급을 막지 않음)을 고릅니다.</span></div>
+		</div>
+
+		<div class="card">
+			<div class="card-head"><h2>이 금액이면 결재선이 어떻게 되나요?</h2><span class="sub">저장하기 전에 확인해 보세요</span></div>
+			<div class="calc">
+				<span class="fs-s muted" style="font-weight:700">지출 합계</span>
+				<input id="test" class="amount-in" inputmode="numeric" value="310,000">
+				<span>원</span>
+				<span id="hit" class="st going"></span>
+			</div>
+			<ol class="flow" id="flow" style="margin-top:1.1rem"></ol>
+		</div>
+
+		<div class="card">
+			<div class="card-head"><h2>추가 조건</h2><span class="sub">구간과 별개로 결재 단계를 더합니다</span></div>
+			<div class="role-row" style="grid-template-columns:1fr auto">
+				<div><b>예산을 넘겨 상신한 경우</b><span class="hint" style="font-size:.82rem">남은 예산보다 많은 금액을 쓰는 결의서</span></div>
+				<div class="row"><select class="w-fix"><option>담임목사 단계 추가</option><option>재정위원장 뒤 단계 추가 없음 (경고만)</option><option>상신 차단</option></select></div>
+			</div>
+			<div class="role-row" style="grid-template-columns:1fr auto">
+				<div><b>예비비를 쓰는 경우</b><span class="hint" style="font-size:.82rem">예산 항목이 예비비인 결의서</span></div>
+				<div class="row"><select class="w-fix"><option>담임목사 단계 추가</option><option>추가 없음</option></select></div>
+			</div>
+			<div class="role-row" style="grid-template-columns:1fr auto">
+				<div><b>담임목사 본인이 당사자인 지출</b><span class="hint" style="font-size:.82rem">사례비·목회활동비 등 담임목사 단계를 건너뛰지 않고 바꿀 결재자</span></div>
+				<div class="row"><select class="w-fix"><option>당회 서기 (한정직 장로)</option><option>재정부장</option></select></div>
+			</div>
+		</div>
+
+		<div class="row" style="justify-content:flex-end"><span class="muted fs-s">규칙을 바꿔도 이미 상신된 문서의 결재선은 바뀌지 않습니다 · 변경은 수정 기록에 남습니다</span><button type="button">규칙 저장</button></div>
+	</div>
+
+	<!-- ===== 2. 직접 지출 ===== -->
+	<div class="state" id="r2" data-group="rl">
+		<div class="note"><span data-i="info"></span><div><b>직접 지출</b>은 사례비·공과금처럼 매번 결의서를 올리지 않고 <b>재정 담당이 바로 장부에 등록</b>하는 지출입니다. 여기서 허용한 항목만 가능하고, 나머지는 반드시 지출결의서를 거칩니다. 직접 등록한 건은 월 마감 때 재정위원장이 한꺼번에 확인합니다.</div></div>
+
+		<div class="card" style="padding:0">
+			<div class="toolbar" style="padding:1rem 1.3rem 0">
+				<select><option>2026 회계연도</option></select>
+				<input type="search" placeholder="예산 항목 검색">
+				<span class="sp"></span>
+				<span class="muted fs-s">허용 <b id="dcnt">6</b>개 항목</span>
+			</div>
+			<div class="scroll-x"><table class="tree" style="min-width:0">
+				<thead><tr><th>위원회 › 부서 › 항목</th><th style="text-align:center">직접 등록 허용</th><th>건당 한도 <span class="hint">(비우면 한도 없음)</span></th><th class="money">올해 등록</th></tr></thead>
+				<tbody id="dtbody"></tbody>
+			</table></div>
+		</div>
+		<div class="card">
+			<div class="card-head"><h2>공통 설정</h2></div>
+			<div class="form">
+				<label>직접 등록할 수 있는 역할<select><option>재정 담당</option><option>재정 담당 · 재정위원장</option></select></label>
+				<label>한 달 직접 지출 총 한도 <span class="hint">(선택)</span><div class="won-in"><input inputmode="numeric" placeholder="제한 없음"> 원</div></label>
+				<label class="wide" style="flex-direction:row;align-items:center;gap:.6rem"><span class="switch"><input type="checkbox" checked><i></i></span><span style="font-size:.9rem;color:var(--text)">직접 등록한 건에 증빙 첨부를 필수로 한다</span></label>
+				<label class="wide" style="flex-direction:row;align-items:center;gap:.6rem"><span class="switch"><input type="checkbox" checked><i></i></span><span style="font-size:.9rem;color:var(--text)">월 마감 때 재정위원장의 확인을 받아야 마감할 수 있다</span></label>
+			</div>
+		</div>
+		<div class="row" style="justify-content:flex-end"><button type="button">저장</button></div>
+	</div>
+
+	<!-- ===== 3. 영수증 · 주민등록번호 ===== -->
+	<div class="state" id="r3" data-group="rl">
+		<div class="card">
+			<div class="card-head"><h2>주민등록번호 처리 방식</h2><span class="sub">설치할 때 고르고, 여기서 바꿀 수 있습니다</span></div>
+			<div class="choices wide">
+				<label class="choice"><input type="radio" name="rrn"><b>A. 암호화해서 보관</b><small>헌금자 화면에서 번호를 입력해 두면 영수증을 만들 때 자동으로 채워집니다. 번호는 암호화되어 저장되고 열쇠는 백업에 들어가지 않습니다. 발급할 때마다 사용 기록이 남습니다.</small></label>
+				<label class="choice"><input type="radio" name="rrn" checked><b>B. 보관하지 않음</b><small>번호를 어디에도 저장하지 않습니다. 영수증에는 생년월일 앞 6자리까지만 찍히고 뒷자리는 비워, 받는 분이 직접 적습니다.</small></label>
+			</div>
+			<div class="warn fs-s mt"><b>방식을 바꿀 때</b> · A → B: 저장된 번호를 모두 지울지 확인하며, 지운 번호는 되돌릴 수 없습니다. B → A: 열쇠를 새로 만들어 안내하고, 번호는 그 뒤 헌금자별로 입력합니다.</div>
+			<div class="form mt" style="grid-template-columns:minmax(220px,360px)">
+				<label>마지막 헌금 뒤 번호를 자동으로 지우는 기간 <span class="hint">(A 방식)</span><select disabled><option>5년</option><option>3년</option><option>지우지 않음</option></select></label>
+			</div>
+		</div>
+		<div class="card">
+			<div class="card-head"><h2>영수증 서식</h2></div>
+			<div class="form">
+				<label>고유번호<input value="000-00-00000"></label>
+				<label>기부 내용 줄 방식<select><option>연간 합계 (종류별 한 줄)</option><option>월별 합계</option></select></label>
+				<label>직인<div class="row"><img src="assets/seal-sample.svg" alt="" width="44" height="44"><button class="ghost sm" type="button">그림 올리기</button></div></label>
+				<label class="wide" style="flex-direction:row;align-items:center;gap:.6rem"><span class="switch"><input type="checkbox" checked><i></i></span><span style="font-size:.9rem;color:var(--text)">같은 세대의 헌금을 한 사람 명의로 합산해 발급할 수 있게 한다 <small class="muted">(합산은 사람이 직접 지정)</small></span></label>
+			</div>
+		</div>
+		<div class="row" style="justify-content:flex-end"><button type="button">저장</button></div>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+<script src="assets/shared.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const num = (el) => parseInt(el.value.replace(/[^0-9]/g, ''), 10) || 0;
+function fmtInput(e) { const v = e.target.value.replace(/[^0-9]/g, ''); e.target.value = v ? won(v) : ''; }
+['small', 'big', 'test'].forEach((id) => $(id).addEventListener('input', (e) => { fmtInput(e); calc(); }));
+function calc() {
+	const s = num($('small')), b = num($('big')), t = num($('test'));
+	$('midtxt').textContent = won(s) + '원 초과 ~ ' + won(b) + '원 미만';
+	let k = 'm', label = '일반 구간';
+	if (t <= s) { k = 's'; label = '소액 구간 (전결)'; } else if (t >= b) { k = 'b'; label = '고액 구간'; }
+	document.querySelectorAll('#tiers tbody tr').forEach((tr) => tr.classList.toggle('hit', tr.dataset.t === k));
+	$('hit').textContent = label;
+	const steps = [['부서장', '유치부'], ['위원장', '교육위원회'], ['재정위원장', ''], ['담임목사', '']].slice(0, k === 'b' ? 4 : 3);
+	let f = '<li class="done"><span class="dot">✓</span><b>기안</b><small>부서 회계</small></li>';
+	steps.forEach((x, i) => {
+		const conf = k === 's' && x[0] === '재정위원장', pas = x[0] === '담임목사';
+		f += '<li class="' + (conf ? 'confirm' : '') + (pas ? ' added' : '') + '"><span class="dot">' + (i + 2) + '</span><b>' + x[0] + '</b><small>' + (x[1] || '&nbsp;') + '</small>' + (conf ? '<span class="tagline c">사후 확인</span>' : '') + '</li>';
+	});
+	f += '<li class="confirm"><span class="dot">₩</span><b>지급</b><small>재정 담당</small></li>';
+	$('flow').innerHTML = f;
+}
+calc();
+
+// 직접 지출 항목표 (예시)
+const D = [
+	['공통 · 기타 지출', null], ['사례비', 1, ''], ['공과금 (전기 · 수도 · 가스)', 1, ''], ['통신비 · 인터넷', 1, '500,000'], ['보험료', 1, ''], ['사무용품', 0, ''],
+	['사회봉사위원회 › 봉사부', null], ['경조비', 1, '200,000'], ['구제 지원', 0, ''],
+	['관리위원회 › 시설관리부', null], ['시설 보수', 0, ''], ['청소 · 소모품', 1, '300,000'],
+	['예비비', null], ['예비비 사용', 0, '']
+];
+const used = { '사례비': '38,880,000 (12건)', '공과금 (전기 · 수도 · 가스)': '7,420,000 (22건)', '통신비 · 인터넷': '960,000 (11건)', '보험료': '2,180,000 (2건)', '경조비': '420,000 (3건)', '청소 · 소모품': '650,000 (6건)' };
+$('dtbody').innerHTML = D.map((r) => r[1] === null
+	? '<tr class="sub"><td class="lv0" colspan="4" style="font-size:.86rem">' + r[0] + '</td></tr>'
+	: '<tr><td class="lv2">' + r[0] + '</td><td style="text-align:center"><label class="switch"><input type="checkbox" class="dsw"' + (r[1] ? ' checked' : '') + '><i></i></label></td><td><div class="won-in"><input inputmode="numeric" value="' + r[2] + '" placeholder="한도 없음"> 원</div></td><td class="money">' + (used[r[0]] || '-') + '</td></tr>').join('');
+const cnt = () => ($('dcnt').textContent = document.querySelectorAll('.dsw:checked').length);
+document.querySelectorAll('.dsw').forEach((c) => c.addEventListener('change', cnt)); cnt();
+document.querySelectorAll('#dtbody input[inputmode]').forEach((i) => i.addEventListener('input', fmtInput));
+</script>
+</body>
+</html>

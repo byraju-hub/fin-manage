@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재정 관리 디자인 시안 목차</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body>
+<div class="site" style="padding-top:0">
+<main>
+	<div class="hero">
+		<div>
+			<small>fin-manage · 디자인 시안 v0.1</small>
+			<h1>교회 재정 관리 화면 시안</h1>
+			<p>교적 관리(ch-manage)와 같은 색·글꼴·카드·표·버튼을 그대로 쓰고, 재정에만 필요한 부분(결재선, 헌금 빠른 입력, 예산 막대, 영수증 서식)을 더했습니다.</p>
+			<p class="motto">설계서 <b>docs/ARCHITECTURE.md</b> 의 4·6·7·8·10장을 화면으로 옮긴 것입니다. 이름과 금액은 모두 예시입니다.</p>
+		</div>
+		<div class="actions"><a class="btn light" href="dashboard.html">대시보드부터 보기</a></div>
+	</div>
+
+	<h2>모든 사람이 쓰는 화면</h2>
+	<div class="idx-grid" style="margin-bottom:1.6rem">
+		<a class="idx-card" href="login.html"><h3><span class="n">1</span>로그인 · 재정 사용 신청</h3><p>교적 아이디·비밀번호로 로그인. 승인 전 신청·대기·교인 미연결 상태 4가지.</p><span class="tag now who2">통합 로그인</span></a>
+		<a class="idx-card" href="dashboard.html"><h3><span class="n">2</span>첫 화면</h3><p>재정 담당 기준. 이번 주 헌금, 월 수입·지출, 결재·지급 대기, 마감 점검.</p><span class="tag who2">재정 담당</span></a>
+	</div>
+
+	<h2>재정부 (재정 담당 · 재정위원장 · 담임목사)</h2>
+	<div class="idx-grid" style="margin-bottom:1.6rem">
+		<a class="idx-card" href="offerings.html"><h3><span class="n">3</span>헌금 입력</h3><p>종류 선택 → 이름 몇 글자 → 금액 → Enter. 동명이인 구분, 종류별 계수 금액 대조, 마감.</p><span class="tag who2">재정 담당</span></a>
+		<a class="idx-card" href="budget.html"><h3><span class="n">4</span>예산 집행 현황</h3><p>위원회 › 부서 › 항목별 예산·집행·결재 중·잔액. 예비비와 기타 지출 포함.</p><span class="tag who2">재정 담당</span></a>
+		<a class="idx-card" href="receipts.html"><h3><span class="n">5</span>기부금 영수증</h3><p>연도별 대상자 목록, 가족 합산, 서식 미리보기, 일괄 발급, 발급 대장.</p><span class="tag who2">재정 담당</span></a>
+	</div>
+
+	<h2>지출결의서와 전자결재</h2>
+	<div class="idx-grid" style="margin-bottom:1.6rem">
+		<a class="idx-card" href="voucher-new.html"><h3><span class="n">6</span>지출결의서 쓰기 (휴대폰 우선)</h3><p>부서 회계가 기안. 영수증 촬영, 예산 잔액 표시, 금액에 따라 바뀌는 결재선 미리보기.</p><span class="tag who2">부서 회계 화면</span></a>
+		<a class="idx-card" href="approvals.html"><h3><span class="n">7</span>결재함 · 결재</h3><p>위원장 화면. 내 차례 문서, 결재선 진행, 증빙, 비밀번호 확인 후 결재·반려.</p><span class="tag who2">위원장 화면</span></a>
+	</div>
+
+	<h2>관리자 설정</h2>
+	<div class="idx-grid">
+		<a class="idx-card" href="admin-users.html"><h3><span class="n">8</span>재정 사용 승인</h3><p>교적 계정의 신청 승인, 역할 부여, 개인별 헌금 열람 지정(담임목사·지정한 감사).</p><span class="tag who2">재정 관리자</span></a>
+		<a class="idx-card" href="admin-org.html"><h3><span class="n">9</span>재정 단위 · 담당자 지정</h3><p>조직표의 위원회·부서별로 회계·부서장·위원장을 교인 목록에서 검색해 지정.</p><span class="tag who2">재정 관리자</span></a>
+		<a class="idx-card" href="admin-rules.html"><h3><span class="n">10</span>결재 규칙 · 직접 지출 · 주민번호</h3><p>금액 구간과 결재선, 직접 지출 항목·한도, 주민등록번호 보관 방식을 관리자가 설정.</p><span class="tag who2">재정 관리자</span></a>
+	</div>
+</main>
+</div>
+</body>
+</html>

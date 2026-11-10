@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>지출결의서 쓰기 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="voucher-new" data-role="dept" data-user="이수진" data-title="유치부 회계" class="has-bar">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 유치부 회계(이수진) 화면입니다. 금액을 바꾸면 오른쪽 <b>결재선</b>이 바뀝니다(예시 기준: 10만 원 이하 전결, 100만 원 이상 담임목사 추가). · <a href="index.html">시안 목차</a></div>
+
+	<div class="row page-head">
+		<h1>지출결의서 쓰기</h1>
+		<span class="sp"></span>
+		<span class="st draft">작성 중</span>
+	</div>
+
+	<div class="two">
+		<div>
+			<div class="card">
+				<div class="card-head"><h2>기본 정보</h2><span class="sub">문서 번호는 상신할 때 매겨집니다</span></div>
+				<div class="form">
+					<label>재정 단위 <span class="hint">내 담당 부서로 고정</span>
+						<div class="pcard"><span class="ico-s" style="color:var(--primary)" data-i="building"></span><div class="grow"><b>교육위원회 › 유치부</b><small>회계 이수진 · 부서장 박온유 · 위원장 최진리 장로</small></div></div>
+					</label>
+					<label>지급 희망일<input type="date" value="2026-11-16"></label>
+					<label class="wide">제목<input value="추수감사 행사 간식 및 성탄 발표 소품 구입"></label>
+					<label class="wide">지출 사유<textarea rows="2">11월 15일 추수감사 주일 유치부 행사 간식과 12월 성탄 발표회 소품 구입</textarea></label>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-head"><h2>지급 방법</h2></div>
+				<div class="choices">
+					<label class="choice"><input type="radio" name="pay" checked><b>계좌이체</b><small>거래처·업체에 교회가 직접 보냅니다</small></label>
+					<label class="choice"><input type="radio" name="pay"><b>먼저 쓰고 청구</b><small>제가 먼저 낸 돈을 돌려받습니다</small></label>
+					<label class="choice"><input type="radio" name="pay"><b>현금</b><small>재정부에서 현금으로 받아 갑니다</small></label>
+					<label class="choice"><input type="radio" name="pay"><b>법인카드</b><small>카드로 이미 결제했어요</small></label>
+				</div>
+				<div class="form mt bank-row">
+					<label>받는 곳 은행<select><option>농협</option><option>국민은행</option><option>신한은행</option><option>우리은행</option><option>하나은행</option></select></label>
+					<label>계좌번호<input inputmode="numeric" placeholder="숫자만" value="352-0000-1234-56"></label>
+					<label>예금주<input value="○○마트"></label>
+				</div>
+			</div>
+
+			<div class="card">
+				<div class="card-head"><h2>지출 내역</h2><span class="sub">예산 항목에서 나갑니다</span></div>
+				<div id="items"></div>
+				<div class="row mt"><button class="ghost sm" type="button" id="addrow">+ 줄 추가</button><span class="sp"></span><span class="muted fs-s">합계</span><b class="big" id="total">0원</b></div>
+			</div>
+
+			<div class="card">
+				<div class="card-head"><h2>증빙</h2><span class="sub">영수증·견적서 · 사진 또는 PDF</span></div>
+				<div class="proofs">
+					<div class="proof"><div class="rc"><i></i><i></i><i></i><i></i></div><small>영수증1.jpg</small></div>
+					<div class="proof"><div class="rc"><i></i><i></i><i></i><i></i></div><small>영수증2.jpg</small></div>
+					<div class="proof add"><div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.5"/></svg>사진 찍기<br>· 올리기</div></div>
+				</div>
+				<p class="muted fs-s mb0 mt">증빙이 없으면 사유를 적어야 상신할 수 있어요. 사진은 자동으로 작게 줄여 올립니다.</p>
+			</div>
+		</div>
+
+		<div class="sticky-col">
+			<div class="card">
+				<div class="card-head"><h2><span class="h-ico" data-ico="check"></span>결재선 미리보기</h2></div>
+				<div id="tier" class="fs-s" style="margin-bottom:.8rem"></div>
+				<ol class="flow v" id="flow"></ol>
+				<p class="muted fs-s mb0">상신하면 이 결재선이 이름과 함께 고정됩니다. 결재 중에는 내용을 고칠 수 없고, 첫 결재 전이면 <b>회수</b>할 수 있어요.</p>
+			</div>
+			<div class="card">
+				<div class="card-head"><h2>우리 부서 예산</h2><span class="sub">2026 · 유치부</span></div>
+				<div id="bud"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="action-bar">
+		<div class="sum">합계<b id="total2">0원</b></div>
+		<button class="ghost" type="button">임시 저장</button>
+		<button type="button" id="submit">상신하기</button>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+
+<div class="modal-bg" id="m"><div class="modal">
+	<h3>상신하시겠어요?</h3>
+	<p class="muted fs-s">상신하면 부서장에게 결재 요청이 갑니다.</p>
+	<input type="password" placeholder="비밀번호 확인 (교적과 같은 비밀번호)">
+	<div class="row"><button class="ghost" type="button" onclick="m.classList.remove('open')">취소</button><button type="button" onclick="m.classList.remove('open')">상신</button></div>
+</div></div>
+
+<script src="assets/shared.js"></script>
+<script>
+// 예시 설정값: 실제로는 관리자가 '결재 규칙'에서 입력한 금액을 서버가 적용한다
+const SMALL = 100000, BIG = 1000000;
+const BUD = [
+	{ n: '교육 활동비', total: 1200000, used: 780000, wait: 0 },
+	{ n: '간식 · 행사비', total: 800000, used: 610000, wait: 0 },
+	{ n: '교재 · 교구비', total: 600000, used: 390000, wait: 0 }
+];
+let items = [{ b: 1, s: '추수감사 행사 간식', a: 182000 }, { b: 2, s: '성탄 발표 소품', a: 128000 }];
+const $ = (id) => document.getElementById(id);
+const remain = (i) => BUD[i].total - BUD[i].used - BUD[i].wait;
+function drawItems() {
+	$('items').innerHTML = items.map((r, k) => {
+		const left = remain(r.b) - items.filter((x) => x.b === r.b).reduce((t, x) => t + x.a, 0);
+		return '<div class="item-row">' +
+			'<label>예산 항목<select data-k="' + k + '" data-f="b">' + BUD.map((b, i) => '<option value="' + i + '"' + (i === r.b ? ' selected' : '') + '>' + b.n + ' (남은 ' + won(remain(i)) + ')</option>').join('') + '</select></label>' +
+			'<label>적요<input data-k="' + k + '" data-f="s" value="' + r.s + '"></label>' +
+			'<label>금액<input class="amount-in" inputmode="numeric" data-k="' + k + '" data-f="a" value="' + won(r.a) + '"></label>' +
+			'<button class="ghost xs" type="button" data-del="' + k + '" aria-label="줄 지우기">삭제</button>' +
+			'<div class="hintline fs-s ' + (left < 0 ? 'neg' : 'muted') + '">' + (left < 0 ? '⚠ 예산을 ' + won(-left) + '원 넘습니다. 상신은 되지만 담임목사 단계가 추가돼요.' : '쓴 뒤 남는 금액 ' + won(left) + '원') + '</div></div>';
+	}).join('');
+}
+function calc() {
+	const sum = items.reduce((t, x) => t + x.a, 0);
+	const over = BUD.some((b, i) => items.filter((x) => x.b === i).reduce((t, x) => t + x.a, 0) > remain(i));
+	$('total').textContent = $('total2').textContent = won(sum) + '원';
+	let tier = '일반 구간', note = '10만 원 초과 ~ 100만 원 미만', steps = ['부서장', '위원장', '재정위원장'], conf = false, added = null;
+	if (sum <= SMALL) { tier = '소액 구간 (전결)'; note = '10만 원 이하 · 재정위원장은 사후 확인'; conf = true; }
+	if (sum >= BIG) { tier = '고액 구간'; note = '100만 원 이상 · 담임목사 결재 추가'; steps.push('담임목사'); added = '고액 구간으로 추가'; }
+	else if (over) { steps.push('담임목사'); added = '예산 초과로 추가'; }
+	const who = { '부서장': ['박온유 집사', '유치부 부서장'], '위원장': ['최진리 장로', '교육위원회 위원장'], '재정위원장': ['정공의 장로', '재정위원장'], '담임목사': ['한은총 목사', '담임목사'] };
+	let f = '<li class="done"><span class="dot">✓</span><b>이수진</b><small>기안 · 유치부 회계</small></li>';
+	steps.forEach((s, i) => {
+		const isC = conf && s === '재정위원장', isAdd = added && s === '담임목사';
+		f += '<li class="' + (isC ? 'confirm' : '') + (isAdd ? ' added' : '') + '"><span class="dot">' + (i + 2) + '</span><b>' + who[s][0] + '</b><small>' + who[s][1] + '</small>' +
+			(isC ? '<span class="tagline c">사후 확인 · 지급을 막지 않음</span>' : '') + (isAdd ? '<span class="tagline">' + added + '</span>' : '') + '</li>';
+	});
+	$('flow').innerHTML = f;
+	$('tier').innerHTML = '<span class="st ' + (added ? 'warn2' : 'going') + '">' + tier + '</span> <span class="muted">' + note + (over && sum < BIG ? ' · 예산 초과' : '') + '</span>';
+	$('bud').innerHTML = BUD.map((b, i) => {
+		const use = items.filter((x) => x.b === i).reduce((t, x) => t + x.a, 0), p1 = b.used / b.total * 100, p2 = Math.min(100 - p1, use / b.total * 100);
+		return '<div style="margin-bottom:.8rem"><div class="row" style="justify-content:space-between"><b class="fs-s">' + b.n + '</b><span class="fs-s muted">' + won(b.total - b.used - use) + ' / ' + won(b.total) + '</span></div><div class="meter' + (use > remain(i) ? ' hot' : '') + '"><i class="a" style="width:' + p1 + '%"></i><i class="b" style="width:' + p2 + '%"></i></div></div>';
+	}).join('') + '<p class="fs-s muted mb0">진한 막대 = 지급 완료, 옅은 막대 = 이번 결의서</p>';
+}
+function render() { drawItems(); calc(); }
+$('items').addEventListener('input', (e) => {
+	const t = e.target, k = +t.dataset.k; if (isNaN(k)) return;
+	if (t.dataset.f === 'a') { const v = parseInt(t.value.replace(/[^0-9]/g, ''), 10) || 0; items[k].a = v; t.value = v ? won(v) : ''; calc(); drawItemsHints(); }
+	else if (t.dataset.f === 's') items[k].s = t.value;
+});
+$('items').addEventListener('change', (e) => { const t = e.target; if (t.dataset.f === 'b') { items[+t.dataset.k].b = +t.value; render(); } });
+$('items').addEventListener('click', (e) => { const d = e.target.closest('[data-del]'); if (d && items.length > 1) { items.splice(+d.dataset.del, 1); render(); } });
+function drawItemsHints() { document.querySelectorAll('#items .item-row').forEach((el, k) => { const r = items[k], left = remain(r.b) - items.filter((x) => x.b === r.b).reduce((t, x) => t + x.a, 0), h = el.lastElementChild; h.className = 'hintline fs-s ' + (left < 0 ? 'neg' : 'muted'); h.textContent = left < 0 ? '⚠ 예산을 ' + won(-left) + '원 넘습니다. 상신은 되지만 담임목사 단계가 추가돼요.' : '쓴 뒤 남는 금액 ' + won(left) + '원'; }); }
+$('addrow').addEventListener('click', () => { items.push({ b: 0, s: '', a: 0 }); render(); });
+$('submit').addEventListener('click', () => $('m').classList.add('open'));
+render();
+</script>
+</body>
+</html>

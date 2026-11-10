@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>첫 화면 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="dashboard" data-role="fin" data-user="김재정" data-title="재정 담당">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 재정 담당 기준 첫 화면입니다. 부서 회계·결재자는 자기 일만 있는 더 단순한 첫 화면을 봅니다. · <a href="index.html">시안 목차</a></div>
+
+	<div class="hero">
+		<div>
+			<small>2026 회계연도 · 11월 10일 화요일</small>
+			<h1>샘플교회 재정 현황</h1>
+			<p class="motto">이번 달 마감까지 <span class="d-num">D-20</span> · 계좌 잔액 대조가 아직 입력되지 않았어요</p>
+			<div class="actions" style="margin-top:.4rem">
+				<a class="btn light" href="offerings.html">헌금 입력</a>
+				<a class="btn glass" href="voucher-new.html">지출결의서 쓰기</a>
+				<a class="btn glass" href="receipts.html">기부금 영수증</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="kpis">
+		<div class="kpi"><div class="ico" data-ico="coins"></div><div><b>6,842,000<span class="of">원</span></b><span>지난 주일 헌금 <em class="up">▲ 3.1%</em></span></div></div>
+		<div class="kpi"><div class="ico green" data-ico="chart"></div><div><b>28,640,000<span class="of">원</span></b><span>이번 달 수입 (11월)</span></div></div>
+		<div class="kpi"><div class="ico amber" data-ico="receipt"></div><div><b>19,205,000<span class="of">원</span></b><span>이번 달 지출 · 예산 집행률 81%</span></div></div>
+		<div class="kpi"><div class="ico violet" data-ico="wallet"></div><div><b>87,310,000<span class="of">원</span></b><span>전체 계좌 잔액 (통장 3 · 현금 1)</span></div></div>
+	</div>
+
+	<div class="dash-grid">
+		<div class="card">
+			<div class="card-head"><h2><span class="h-ico" data-ico="chart"></span>월별 수입 · 지출</h2><span class="sub">단위: 백만 원 · 2026년</span></div>
+			<div class="chart" id="chart"></div>
+			<div class="chart-legend"><span><i class="sw" style="background:var(--primary)"></i>수입</span><span><i class="sw" style="background:var(--orange)"></i>지출</span></div>
+		</div>
+		<div class="card">
+			<div class="card-head"><h2><span class="h-ico" data-ico="check"></span>지급 대기</h2><a class="fs-s" href="approvals.html">결재함 →</a></div>
+			<div class="li"><span class="avatar">유</span><div class="grow"><b>유치부 여름성경학교 간식비</b><small>2026-0153 · 결재 완료 11.09</small></div><span class="money"><b>182,000</b></span></div>
+			<div class="li"><span class="avatar warm">청</span><div class="grow"><b>청년부 수련회 장소 계약금</b><small>2026-0151 · 결재 완료 11.08</small></div><span class="money"><b>1,500,000</b></span></div>
+			<div class="li"><span class="avatar rose">관</span><div class="grow"><b>관리부 소방 점검 비용</b><small>2026-0149 · 결재 완료 11.06</small></div><span class="money"><b>330,000</b></span></div>
+			<div class="row mt"><button class="sm" type="button">이체 목록 내려받기 (3건)</button><button class="ghost sm" type="button">지급 처리</button></div>
+		</div>
+	</div>
+
+	<div class="dash-grid even">
+		<div class="card">
+			<div class="card-head"><h2><span class="h-ico" data-ico="building"></span>위원회별 예산 집행</h2><a class="fs-s" href="budget.html">전체 보기 →</a></div>
+			<div class="hbar"><span class="nm">예배위원회</span><div class="meter"><i class="a" style="width:72%"></i><i class="b" style="width:6%"></i></div><span class="v">72%</span></div>
+			<div class="hbar"><span class="nm">교육위원회</span><div class="meter"><i class="a" style="width:81%"></i><i class="b" style="width:9%"></i></div><span class="v">81%</span></div>
+			<div class="hbar"><span class="nm">선교위원회</span><div class="meter"><i class="a" style="width:64%"></i></div><span class="v">64%</span></div>
+			<div class="hbar"><span class="nm">관리위원회</span><div class="meter hot"><i class="a" style="width:93%"></i></div><span class="v neg">93%</span></div>
+			<div class="hbar"><span class="nm">사회봉사위원회</span><div class="meter"><i class="a" style="width:48%"></i></div><span class="v">48%</span></div>
+			<div class="hbar"><span class="nm">예비비</span><div class="meter"><i class="a" style="width:20%"></i></div><span class="v">20%</span></div>
+			<p class="muted fs-s" style="margin-bottom:0">진한 막대 = 지급 완료, 옅은 막대 = 결재 중. 90% 이상은 주황색으로 알려 줍니다.</p>
+		</div>
+		<div class="card">
+			<div class="card-head"><h2><span class="h-ico" data-ico="clock"></span>11월 마감 점검</h2><span class="sub">마감 D-20</span></div>
+			<div class="li"><span class="ok-i">✓</span><div class="grow"><b>주일 헌금 묶음 마감</b><small>11월 1·8일 마감 완료 · 15일 예정</small></div></div>
+			<div class="li"><span class="ok-i">✓</span><div class="grow"><b>결재 완료 문서 지급 처리</b><small>미지급 3건 → 지급 대기에서 처리</small></div><span class="tag part">3건</span></div>
+			<div class="li"><span class="pdot"></span><div class="grow"><b>직접 지출 확인 (재정위원장)</b><small>이번 달 직접 등록 7건 · 확인 전</small></div></div>
+			<div class="li"><span class="pdot"></span><div class="grow"><b>전결 문서 사후 확인</b><small>재정위원장 확인 대기 4건</small></div></div>
+			<div class="li"><span class="pdot"></span><div class="grow"><b>계좌 잔액 대조</b><small>통장 3 · 현금 1 실제 잔액 입력</small></div><a class="btn xs" href="#">입력</a></div>
+		</div>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+<script src="assets/shared.js"></script>
+<script>
+// 월별 수입·지출 막대 (예시 자료, 백만 원)
+const inc = [38.2, 35.1, 41.0, 36.8, 52.3, 37.5, 36.2, 39.9, 44.1, 40.3, 28.6];
+const exp = [31.5, 29.8, 36.4, 33.2, 41.7, 30.9, 34.1, 33.8, 38.6, 35.2, 19.2];
+const W = 640, H = 240, L = 34, B = 30, T = 14, max = 60, bw = 15, gap = (W - L - 10) / 11;
+let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="월별 수입과 지출 막대 그래프">';
+for (let v = 0; v <= max; v += 20) { const y = H - B - (v / max) * (H - B - T); s += '<line x1="' + L + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#e5e8f2"/><text x="' + (L - 6) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#6a7090">' + v + '</text>'; }
+inc.forEach((v, i) => {
+	const x = L + 8 + i * gap, h1 = (v / max) * (H - B - T), h2 = (exp[i] / max) * (H - B - T);
+	s += '<rect x="' + x + '" y="' + (H - B - h1) + '" width="' + bw + '" height="' + h1 + '" rx="3" fill="#4558ae"><title>' + (i + 1) + '월 수입 ' + v + '백만 원</title></rect>';
+	s += '<rect x="' + (x + bw + 2) + '" y="' + (H - B - h2) + '" width="' + bw + '" height="' + h2 + '" rx="3" fill="#f0642a"><title>' + (i + 1) + '월 지출 ' + exp[i] + '백만 원</title></rect>';
+	s += '<text x="' + (x + bw) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="#6a7090">' + (i + 1) + '월</text>';
+});
+document.getElementById('chart').innerHTML = s + '</svg>';
+</script>
+</body>
+</html>

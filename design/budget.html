@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>예산 집행 현황 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="budget" data-role="fin" data-user="김재정" data-title="재정 담당">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 재정 담당 기준 전체 화면입니다. 부서 회계·부서장은 자기 부서 줄만, 위원장은 위원회 전체를 봅니다. · <a href="index.html">시안 목차</a></div>
+
+	<div class="row page-head">
+		<h1>예산</h1>
+		<span class="sp"></span>
+		<div class="row">
+			<select style="width:auto"><option>2026 회계연도</option><option>2025 회계연도</option></select>
+			<span class="st ok">예산 확정 · 2026-01-18 공동의회</span>
+		</div>
+	</div>
+
+	<div class="tabs" data-tabs="bd">
+		<button type="button" class="on" data-show="b1">집행 현황</button>
+		<button type="button" data-show="b2">수입 예산</button>
+		<button type="button" data-show="b3">예산 변경 내역 <span class="tag part">2</span></button>
+	</div>
+
+	<div class="kpis">
+		<div class="kpi"><div class="ico" data-ico="wallet"></div><div><b>312,000,000<span class="of">원</span></b><span>지출 예산 (변경 반영)</span></div></div>
+		<div class="kpi"><div class="ico green" data-ico="check"></div><div><b>237,420,000<span class="of">원</span></b><span>지급 완료 · 76.1%</span></div></div>
+		<div class="kpi"><div class="ico amber" data-ico="clock"></div><div><b>4,910,000<span class="of">원</span></b><span>결재 중 (7건)</span></div></div>
+		<div class="kpi"><div class="ico violet" data-ico="coins"></div><div><b>69,670,000<span class="of">원</span></b><span>남은 예산 · 잔여 2개월</span></div></div>
+	</div>
+
+	<div class="state on" id="b1" data-group="bd">
+	<div class="card" style="padding:0">
+		<div class="toolbar" style="padding:1rem 1.3rem 0">
+			<input type="search" placeholder="위원회 · 부서 · 항목 검색">
+			<select><option>모든 위원회</option><option>예배위원회</option><option>교육위원회</option></select>
+			<label class="row fs-s muted" style="gap:.35rem"><input type="checkbox"> 90% 이상만</label>
+			<span class="sp"></span>
+			<button class="ghost sm" type="button">엑셀 내려받기</button>
+			<button class="ghost sm" type="button">인쇄</button>
+		</div>
+		<div class="scroll-x"><table class="tree">
+			<thead><tr><th>위원회 › 부서 › 항목</th><th class="money">예산</th><th class="money">지급 완료</th><th class="money">결재 중</th><th class="money">남은 금액</th><th style="min-width:150px">집행률</th></tr></thead>
+			<tbody>
+				<tr><td class="lv0">예배위원회</td><td class="money lv0">58,000,000</td><td class="money lv0">41,760,000</td><td class="money lv0">0</td><td class="money lv0">16,240,000</td><td class="lv0"><div class="meter"><i class="a" style="width:72%"></i></div></td></tr>
+				<tr class="sub"><td class="lv1">예배부</td><td class="money">24,000,000</td><td class="money">17,400,000</td><td class="money">0</td><td class="money">6,600,000</td><td><div class="meter"><i class="a" style="width:72.5%"></i></div></td></tr>
+				<tr><td class="lv2">예배 준비비</td><td class="money">12,000,000</td><td class="money">8,900,000</td><td class="money">0</td><td class="money">3,100,000</td><td><div class="meter"><i class="a" style="width:74%"></i></div></td></tr>
+				<tr><td class="lv2">성찬 · 절기 준비</td><td class="money">12,000,000</td><td class="money">8,500,000</td><td class="money">0</td><td class="money">3,500,000</td><td><div class="meter"><i class="a" style="width:71%"></i></div></td></tr>
+				<tr class="sub"><td class="lv1">찬양대</td><td class="money">34,000,000</td><td class="money">24,360,000</td><td class="money">0</td><td class="money">9,640,000</td><td><div class="meter"><i class="a" style="width:71.6%"></i></div></td></tr>
+
+				<tr><td class="lv0">교육위원회</td><td class="money lv0">46,000,000</td><td class="money lv0">37,260,000</td><td class="money lv0">4,140,000</td><td class="money lv0">4,600,000</td><td class="lv0"><div class="meter"><i class="a" style="width:81%"></i><i class="b" style="width:9%"></i></div></td></tr>
+				<tr class="sub"><td class="lv1">유치부</td><td class="money">2,600,000</td><td class="money">1,780,000</td><td class="money">310,000</td><td class="money">510,000</td><td><div class="meter"><i class="a" style="width:68.5%"></i><i class="b" style="width:11.9%"></i></div></td></tr>
+				<tr><td class="lv2">교육 활동비</td><td class="money">1,200,000</td><td class="money">780,000</td><td class="money">0</td><td class="money">420,000</td><td><div class="meter"><i class="a" style="width:65%"></i></div></td></tr>
+				<tr><td class="lv2">간식 · 행사비</td><td class="money">800,000</td><td class="money">610,000</td><td class="money">182,000</td><td class="money">8,000</td><td><div class="meter hot"><i class="a" style="width:76%"></i><i class="b" style="width:22.8%"></i></div></td></tr>
+				<tr><td class="lv2">교재 · 교구비</td><td class="money">600,000</td><td class="money">390,000</td><td class="money">128,000</td><td class="money">82,000</td><td><div class="meter"><i class="a" style="width:65%"></i><i class="b" style="width:21.3%"></i></div></td></tr>
+				<tr class="sub"><td class="lv1">중고등부</td><td class="money">9,600,000</td><td class="money">7,100,000</td><td class="money">600,000</td><td class="money">1,900,000</td><td><div class="meter"><i class="a" style="width:74%"></i><i class="b" style="width:6.3%"></i></div></td></tr>
+				<tr class="sub"><td class="lv1">청년부</td><td class="money">12,000,000</td><td class="money">10,900,000</td><td class="money">1,500,000</td><td class="money">-400,000</td><td><div class="meter hot"><i class="a" style="width:91%"></i><i class="b" style="width:9%"></i></div></td></tr>
+
+				<tr><td class="lv0">관리위원회</td><td class="money lv0">72,000,000</td><td class="money lv0">66,960,000</td><td class="money lv0">330,000</td><td class="money lv0">4,710,000</td><td class="lv0"><div class="meter hot"><i class="a" style="width:93%"></i></div></td></tr>
+				<tr><td class="lv0">선교위원회</td><td class="money lv0">64,000,000</td><td class="money lv0">40,960,000</td><td class="money lv0">0</td><td class="money lv0">23,040,000</td><td class="lv0"><div class="meter"><i class="a" style="width:64%"></i></div></td></tr>
+				<tr><td class="lv0">사회봉사위원회</td><td class="money lv0">20,000,000</td><td class="money lv0">9,600,000</td><td class="money lv0">440,000</td><td class="money lv0">9,960,000</td><td class="lv0"><div class="meter"><i class="a" style="width:48%"></i></div></td></tr>
+				<tr><td class="lv0">공통 · 기타 지출 <span class="tag">사례비 · 공과금 · 상환</span></td><td class="money lv0">42,000,000</td><td class="money lv0">38,880,000</td><td class="money lv0">0</td><td class="money lv0">3,120,000</td><td class="lv0"><div class="meter hot"><i class="a" style="width:92.6%"></i></div></td></tr>
+				<tr><td class="lv0">예비비</td><td class="money lv0">10,000,000</td><td class="money lv0">2,000,000</td><td class="money lv0">0</td><td class="money lv0">8,000,000</td><td class="lv0"><div class="meter"><i class="a" style="width:20%"></i></div></td></tr>
+				<tr class="tot"><td>합계</td><td class="money">312,000,000</td><td class="money">237,420,000</td><td class="money">4,910,000</td><td class="money">69,670,000</td><td>76.1%</td></tr>
+			</tbody>
+		</table></div>
+		<p class="fs-s muted" style="padding:.8rem 1.3rem 1rem;margin:0">진한 막대 = 지급 완료, 옅은 막대 = 결재 중, 주황색 = 90% 이상(또는 초과). 남은 금액이 음수이면 예산 초과이며 담임목사 결재 단계가 추가된 문서입니다.</p>
+	</div>
+	</div>
+
+	<div class="state" id="b2" data-group="bd">
+		<div class="card">
+			<div class="card-head"><h2>수입 예산 대비 실적</h2><span class="sub">2026 · 1월~11월</span></div>
+			<table>
+				<thead><tr><th>수입 항목</th><th class="money">예산</th><th class="money">실적</th><th class="money">달성률</th></tr></thead>
+				<tbody>
+					<tr><td>헌금 › 십일조</td><td class="money">168,000,000</td><td class="money">151,420,000</td><td class="money">90.1%</td></tr>
+					<tr><td>헌금 › 감사헌금</td><td class="money">24,000,000</td><td class="money">22,910,000</td><td class="money">95.5%</td></tr>
+					<tr><td>헌금 › 주일헌금</td><td class="money">36,000,000</td><td class="money">33,150,000</td><td class="money">92.1%</td></tr>
+					<tr><td>헌금 › 건축 · 선교 · 구제 · 절기 외</td><td class="money">70,000,000</td><td class="money">58,370,000</td><td class="money">83.4%</td></tr>
+					<tr><td>기타 수입 › 이월금</td><td class="money">12,000,000</td><td class="money">12,380,000</td><td class="money">103.2%</td></tr>
+					<tr><td>기타 수입 › 교회보조금 · 이자 외</td><td class="money">2,000,000</td><td class="money">1,260,000</td><td class="money">63.0%</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="state" id="b3" data-group="bd">
+		<div class="card">
+			<div class="card-head"><h2>예산 변경 (추경 · 전용)</h2><span class="sub">확정된 예산은 이 기록으로만 바뀝니다</span></div>
+			<table>
+				<thead><tr><th>일자</th><th>구분</th><th>어디서 → 어디로</th><th class="money">금액</th><th>사유</th></tr></thead>
+				<tbody>
+					<tr><td>2026-06-14</td><td><span class="tag">전용</span></td><td>예비비 → 관리위원회 › 시설 보수</td><td class="money">2,000,000</td><td>본당 누수 보수 (재정위원회 06.13 의결)</td></tr>
+					<tr><td>2026-09-02</td><td><span class="tag">전용</span></td><td>교육위원회 › 청년부 예비 → 청년부 수련회</td><td class="money">1,000,000</td><td>수련회 인원 증가</td></tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+<script src="assets/shared.js"></script>
+</body>
+</html>

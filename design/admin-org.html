@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>재정 단위 · 담당자 · 샘플교회 재정 관리 (시안)</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/fm.css">
+</head>
+<body data-page="admin-org" data-role="fin" data-user="김재정" data-title="재정 관리자">
+<div class="site">
+<header id="hdr"></header>
+<main>
+	<div class="mock-bar">디자인 시안 · 교적 조직표(위원회 › 부서)를 해마다 '재정 단위'로 가져온 뒤, 회계·부서장·위원장을 교인 목록에서 찾아 지정합니다. · <a href="index.html">시안 목차</a></div>
+
+	<div class="row page-head">
+		<h1>재정 단위 · 담당자</h1>
+		<span class="sp"></span>
+		<div class="row">
+			<select style="width:auto"><option>2026 회계연도</option><option>2027 회계연도 (편성 중)</option></select>
+			<button class="ghost sm" type="button">교적 조직표에서 가져오기</button>
+			<button class="ghost sm" type="button">작년 것 복사</button>
+		</div>
+	</div>
+	<div class="warn fs-s"><b>확인이 필요한 곳 3곳</b> · 교적 조직표와 담당자가 다른 곳 1곳, 회계 미지정 1곳, 위원장 미지정 1곳. 담당자가 비어 있는 부서는 지출결의서를 상신할 수 없습니다.</div>
+
+	<div class="two" style="grid-template-columns:minmax(260px,.6fr) minmax(0,1.4fr)">
+		<div class="card">
+			<div class="card-head"><h2>조직표</h2><span class="sub">2026</span></div>
+			<ul class="tree-l">
+				<li class="t0">예배위원회</li>
+				<li><a href="#">예배부</a></li>
+				<li><a href="#">찬양대</a></li>
+				<li class="t0">교육위원회</li>
+				<li><a href="#">영유아부</a></li>
+				<li><a href="#" class="on">유치부</a></li>
+				<li><a href="#">유초등부</a></li>
+				<li><a href="#">중고등부</a></li>
+				<li><a href="#">청년부 <span class="miss">회계 미지정</span></a></li>
+				<li class="t0">선교위원회</li>
+				<li><a href="#">국내선교부</a></li>
+				<li><a href="#">해외선교부</a></li>
+				<li class="t0">관리위원회</li>
+				<li><a href="#">시설관리부 <span class="miss">교적과 다름</span></a></li>
+				<li class="t0">사회봉사위원회 <span class="miss" style="font-size:.72rem">위원장 미지정</span></li>
+				<li><a href="#">봉사부</a></li>
+				<li class="t0">공통 · 기타 지출</li>
+				<li><a href="#">사례비 · 공과금 · 상환</a></li>
+				<li class="t0">예비비</li>
+			</ul>
+		</div>
+
+		<div>
+			<div class="card pop">
+				<div class="card-head"><h2>교육위원회 › 유치부</h2><span class="tag now">교적 조직표와 연결됨</span></div>
+
+				<div class="role-row">
+					<label>회계<span class="hint">지출결의서 기안</span></label>
+					<div>
+						<div class="pcard"><span class="avatar">이</span><div class="grow"><b>이수진</b><small>1984년생 · 3구역 · 재정 계정 <span class="ok-i">사용 중</span></small></div><button class="ghost sm" type="button">제거</button></div>
+						<div class="picker mt">
+							<input placeholder="교인 이름으로 회계 추가" value="이수" autocomplete="off">
+							<div class="pick-pop" style="position:static;margin-top:.4rem;box-shadow:var(--shadow-sm)">
+								<div class="hint2">교적 교인 목록에서 찾습니다</div>
+								<div class="gs-row"><span class="avatar">이</span><div class="grow"><b>이수진</b><small>1984년생 · 3구역 · 장년 · 유치부 회계</small></div><span class="tag now">재정 계정 있음</span></div>
+								<div class="gs-row on"><span class="avatar warm">이</span><div class="grow"><b>이수민</b><small>1990년생 · 6구역 · 장년</small></div><span class="tag part">계정 없음</span></div>
+								<div class="gs-row"><span class="avatar">이</span><div class="grow"><b>이수정</b><small>1978년생 · 2구역 · 장년</small></div><span class="tag">승인 대기</span></div>
+							</div>
+						</div>
+						<p class="fs-s muted" style="margin:.7rem 0 0">재정 계정이 아직 없는 교인도 지정할 수 있어요. 그 분이 교적 계정으로 재정 사용을 신청하고 승인되면 그때부터 권한이 생깁니다.</p>
+					</div>
+				</div>
+
+				<div class="role-row">
+					<label>부서장<span class="hint">1차 결재</span></label>
+					<div>
+						<div class="pcard"><span class="avatar">박</span><div class="grow"><b>박온유 집사</b><small>1976년생 · 4구역 · 재정 계정 <span class="ok-i">사용 중</span></small></div><button class="ghost sm" type="button">변경</button></div>
+						<p class="fs-s ok-i" style="margin:.4rem 0 0">✓ 교적 조직표의 부서장과 같습니다</p>
+					</div>
+				</div>
+
+				<div class="role-row">
+					<label>위원장<span class="hint">2차 결재</span></label>
+					<div>
+						<div class="pcard"><span class="avatar warm">최</span><div class="grow"><b>최진리 장로</b><small>교육위원회 위원장 · 재정 계정 <span class="ok-i">사용 중</span></small></div><span class="tag">위원회에서 지정</span></div>
+						<p class="fs-s muted" style="margin:.4rem 0 0">위원장은 위원회 단위로 한 번 지정하면 소속 부서에 모두 적용됩니다.</p>
+					</div>
+				</div>
+				<div class="row" style="justify-content:flex-end"><button type="button">저장</button></div>
+			</div>
+
+			<div class="card">
+				<div class="card-head"><h2>시설관리부</h2><span class="tag part">교적과 다름</span></div>
+				<table class="sm">
+					<thead><tr><th></th><th>재정에서 지정</th><th>교적 조직표</th></tr></thead>
+					<tbody><tr><td>부서장</td><td><b>윤튼튼 집사</b></td><td><b class="neg">장든든 집사</b></td></tr></tbody>
+				</table>
+				<p class="fs-s muted" style="margin:.7rem 0 .6rem">교적에서 부서장이 바뀌었지만 재정에는 아직 이전 담당자가 지정되어 있습니다. 결재선은 재정에서 지정한 사람을 따릅니다.</p>
+				<div class="row"><button class="sm" type="button">교적 기준으로 바꾸기</button><button class="ghost sm" type="button">그대로 두기</button></div>
+			</div>
+
+			<div class="card">
+				<div class="card-head"><h2>담당자 변경 기록</h2></div>
+				<table class="sm"><tbody>
+					<tr><td>11.02</td><td>김재정</td><td>교육위원회 › 유치부 회계 : 김하나 → 이수진</td></tr>
+					<tr><td>01.15</td><td>김재정</td><td>2026 재정 단위를 교적 조직표에서 가져옴 (위원회 6 · 부서 14)</td></tr>
+				</tbody></table>
+			</div>
+		</div>
+	</div>
+</main>
+<footer id="ftr"></footer>
+</div>
+<nav id="tab"></nav>
+<script src="assets/shared.js"></script>
+</body>
+</html>
