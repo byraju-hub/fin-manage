@@ -39,3 +39,4 @@ vite.config.ts.timestamp-*
 /dev/
 # 개발 중 설치 마법사가 만드는 주소 처리 파일 (배포 zip 에서는 설치 때 새로 만들어짐)
 /server/.htaccess
+__pycache__/

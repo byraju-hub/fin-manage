@@ -20,6 +20,8 @@ def code(j):
 
 
 def cleanup():
+    from testkit import wipe
+    wipe()
     sql("delete from fm_access where login_id like 't\\_%'")
     sql("delete from cm_users where login_id like 't\\_%'")
     sql("delete from fm_units where fiscal_year in (2097,2098,2099)")
