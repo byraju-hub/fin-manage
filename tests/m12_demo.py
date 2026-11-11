@@ -56,7 +56,7 @@ names = {l['donor'] for l in j['data']['lines'] if l['donor']}
 check('체험 헌금자 이름은 교적 연결 없이 만든 가짜(교적 people 과 id 로 이어지지 않음)', sql("select count(*) from fmd_donors where person_id is not null") == '0')
 
 # 보기 외 요청은 모두 막힘
-for method, path, body in (('POST', '/funds', {'name': 'x'}), ('POST', '/offering-batches', {'date': '2099-01-01', 'kind': '주일예배'}), ('POST', '/transactions', {}), ('POST', '/auth/reconfirm', {'password': '1234'}),
+for method, path, body in (('POST', '/funds', {'name': 'x'}), ('POST', '/offering-batches', {'date': '2099-01-01', 'kind': '주일'}), ('POST', '/transactions', {}), ('POST', '/auth/reconfirm', {'password': '1234'}),
                            ('POST', '/vouchers', {}), ('POST', '/receipts/issue', {'year': 2025, 'donorIds': [1]}), ('PUT', '/budget-items/1', {}), ('DELETE', '/units/1', {})):
     try:
         s, j = d.call(method, path, body)

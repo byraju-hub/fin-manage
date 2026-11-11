@@ -29,14 +29,14 @@ try:
     s, j = stf.call('POST', '/income-accounts', {'parentId': 1, 'name': '시험비과세헌금', 'isOffering': True}); nonrc = j['data']['id']
 
     def offer(date, lines):
-        s, j = stf.call('POST', '/offering-batches', {'date': date, 'kind': '주일예배'}); bid = j['data']['id']
+        s, j = stf.call('POST', '/offering-batches', {'date': date, 'kind': '주일'}); bid = j['data']['id']
         for acct, donor, amt in lines:
             s, j = stf.call('POST', f'/offering-batches/{bid}/lines', {'accountId': acct, 'donor': donor, 'amount': amt, 'method': '현금'}); assert s == 200, j
         s, j = stf.call('POST', f'/offering-batches/{bid}/close', {'cashWalletId': wc}); assert s == 200, j
         return bid
     P1, P2 = 'p:' + people[5], 'p:' + people[6]
     offer('2098-03-01', [(2, P1, 100000), (nonrc, P1, 50000), (2, P2, 30000)])
-    s, j = stf.call('POST', '/offering-batches', {'date': '2098-04-05', 'kind': '주일예배'}); open_b = j['data']['id']
+    s, j = stf.call('POST', '/offering-batches', {'date': '2098-04-05', 'kind': '주일'}); open_b = j['data']['id']
     stf.call('POST', f'/offering-batches/{open_b}/lines', {'accountId': 2, 'donor': P1, 'amount': 999999, 'method': '현금'})   # 마감 안 한 묶음
 
     s, j = blind.call('GET', f'/receipts/preview?year={Y}'); check('개인별 열람 권한이 없는 재정 담당은 영수증 못 다룸', s == 403)

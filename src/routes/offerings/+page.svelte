@@ -13,7 +13,7 @@
 
 	const me = $derived(auth.me?.access);
 	const isStaff = $derived(!!me?.roles.includes('재정 담당'));
-	const KINDS = ['주일예배', '수요예배', '새벽기도', '절기', '계좌이체분', '기타'];
+	const KINDS = ['주일', '수요예배', '새벽기도', '절기', '계좌이체분', '기타'];
 
 	let year = $state(0);
 	let years = $state<number[]>([]);
@@ -27,7 +27,7 @@
 	let notice = $state('');
 	let busy = $state(false);
 
-	let nb = $state({ date: localDate(), kind: '주일예배', counters: '' });
+	let nb = $state({ date: localDate(), kind: '주일', counters: '' });
 	let f = $state({ hide: false, accountId: 2, donor: null as Donor | null, amount: '', method: '현금', unitId: 0, purpose: '', memo: '' });
 	let counted = $state<Record<string, string>>({});
 	let countersTxt = $state('');

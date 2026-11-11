@@ -17,9 +17,9 @@ s, j = stf.call('POST', '/wallets', {'fundId': 1, 'name': '시험통장', 'kind'
 sql("delete from fm_closings where period='2026-11'")
 
 DATE = '2026-11-08'
-s, j = vw.call('POST', '/offering-batches', {'date': DATE, 'kind': '주일예배'}); check('열람 역할은 헌금 묶음을 못 만듦', s == 403)
-s, j = cnt.call('POST', '/offering-batches', {'date': DATE, 'kind': '주일예배', 'counters': '시험계수'}); check('계수 위원이 묶음 생성', s == 200, j); bid = j['data']['id']
-s, j = cnt.call('POST', '/offering-batches', {'date': '1999-01-01', 'kind': '주일예배'}); check('회계연도가 없는 날짜는 거절', s == 422)
+s, j = vw.call('POST', '/offering-batches', {'date': DATE, 'kind': '주일'}); check('열람 역할은 헌금 묶음을 못 만듦', s == 403)
+s, j = cnt.call('POST', '/offering-batches', {'date': DATE, 'kind': '주일', 'counters': '시험계수'}); check('계수 위원이 묶음 생성', s == 200, j); bid = j['data']['id']
+s, j = cnt.call('POST', '/offering-batches', {'date': '1999-01-01', 'kind': '주일'}); check('회계연도가 없는 날짜는 거절', s == 422)
 P = 'p:' + people[5]
 s, j = cnt.call('POST', f'/offering-batches/{bid}/lines', {'accountId': 2, 'donor': P, 'amount': 100000, 'method': '현금'}); check('십일조 입력(교인)', s == 200, j); lid = j['data']['id']
 s, j = cnt.call('POST', f'/offering-batches/{bid}/lines', {'accountId': 2, 'donor': P, 'amount': 1.5, 'method': '현금'}); check('소수점 금액 거절', s == 422)

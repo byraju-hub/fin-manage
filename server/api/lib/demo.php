@@ -183,7 +183,7 @@ function demo_seed(): void
         $donors[] = ['id' => $did, 'tithe' => mt_rand(3, 30) * 10000];
     }
     $mk = function (string $date, int $y, array $who) use ($a, $cash, $bank, $tithe, $thanks, $sun, $mission, $build) {
-        $bid = insert_id('INSERT INTO ' . t('offering_batches') . ' (fiscal_year, batch_date, kind, counters, created_by) VALUES (?,?,?,?,?)', [$y, $date, '주일예배', '체험 계수 위원', 1]);
+        $bid = insert_id('INSERT INTO ' . t('offering_batches') . ' (fiscal_year, batch_date, kind, counters, created_by) VALUES (?,?,?,?,?)', [$y, $date, '주일', '체험 계수 위원', 1]);
         $add = fn(int $ac, ?int $d, int $amt, string $m = '현금') => q('INSERT INTO ' . t('offerings') . ' (batch_id, offering_date, income_account_id, donor_id, amount, method, created_by) VALUES (?,?,?,?,?,?,1)', [$bid, $date, $ac, $d, $amt, $m]);
         foreach ($who as $d) {
             if (mt_rand(1, 10) <= 7) $add($tithe, $d['id'], $d['tithe'], mt_rand(1, 6) === 1 ? '계좌이체' : '현금');

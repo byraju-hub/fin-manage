@@ -171,7 +171,7 @@ function sample_load(array $a): array
     // 헌금: 올해 최근 8번의 일요일, 작년 매달 첫 일요일(영수증 연습용). 모두 마감해서 장부에 올린다.
     $closeBatch = function (int $bid) use ($a, $cash, $bank) { close_batch_in_tx($bid, $a, $cash, $bank, ''); };
     $mkBatch = function (string $date, int $y, array $who, bool $heavy) use ($me, $donors, $closeBatch) {
-        $bid = insert_id('INSERT INTO ' . t('offering_batches') . ' (fiscal_year, batch_date, kind, counters, created_by) VALUES (?,?,?,?,?)', [$y, $date, '주일예배', '샘플 계수 위원', $me]);
+        $bid = insert_id('INSERT INTO ' . t('offering_batches') . ' (fiscal_year, batch_date, kind, counters, created_by) VALUES (?,?,?,?,?)', [$y, $date, '주일', '샘플 계수 위원', $me]);
         $add = function (int $acct, ?int $donor, int $amt, string $method = '현금') use ($bid, $date, $me) {
             q('INSERT INTO ' . t('offerings') . ' (batch_id, offering_date, income_account_id, donor_id, amount, method, created_by) VALUES (?,?,?,?,?,?,?)', [$bid, $date, $acct, $donor, $amt, $method, $me]);
         };

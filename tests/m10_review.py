@@ -112,7 +112,7 @@ try:
 
     # ---- 계수 위원: 마감하면 더 볼 수 없다 ----
     s, j = stf.call('POST', '/wallets', {'fundId': 1, 'name': '시험현금', 'kind': '현금', 'opening': 0}); wc = j['data']['id']
-    s, j = cnt.call('POST', '/offering-batches', {'date': '2098-03-01', 'kind': '주일예배'}); bid = j['data']['id']
+    s, j = cnt.call('POST', '/offering-batches', {'date': '2098-03-01', 'kind': '주일'}); bid = j['data']['id']
     cnt.call('POST', f'/offering-batches/{bid}/lines', {'accountId': 4, 'amount': 100000, 'method': '현금'})
     s, j = cnt.call('GET', f'/offering-batches/{bid}'); check('입력 중에는 계수 위원이 자기 묶음을 봄', s == 200 and j['data']['entry'])
     stf.call('POST', f'/offering-batches/{bid}/close', {'cashWalletId': wc})
