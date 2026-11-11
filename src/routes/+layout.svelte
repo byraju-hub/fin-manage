@@ -99,6 +99,18 @@
 				}
 				goto(hrefTo('/'), { replaceState: true });
 			}
+			// 체험 주소(/demo): 로그인 창에 안내된 체험 계정(demo/1234)으로 바로 들어간다. 이미 로그인했으면 그대로 첫 화면.
+			if (stripBase(location.pathname) === '/demo') {
+				if (!auth.me) {
+					try {
+						await auth.login('demo', '1234');
+						last = Date.now();
+					} catch (e) {
+						msg = errMsg(e, '체험 계정으로 들어가지 못했습니다.');
+					}
+				}
+				goto(hrefTo('/'), { replaceState: true });
+			}
 		});
 		const touch = () => (last = Date.now());
 		const outside = (e: MouseEvent) => {
