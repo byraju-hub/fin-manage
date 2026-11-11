@@ -6,7 +6,7 @@
 	import { won, localDate, lastSunday, errText } from '#lib/fmt.ts';
 
 	type Batch = { id: number; year: number; date: string; kind: string; status: string; counters: string; counted: Record<string, number>; diffReason: string; total: number; count: number; totals: Record<string, { count: number; sum: number }>; reopened: number; closedAt: string | null };
-	type Line = { id: number; accountId: number; amount: number; method: string; unitId: number | null; purpose: string | null; memo: string | null; donor: string | null };
+	type Line = { hide?: boolean; donorId?: number | null; id: number; accountId: number; amount: number; method: string; unitId: number | null; purpose: string | null; memo: string | null; donor: string | null };
 	type Acct = { id: number; parentId: number | null; name: string; isOffering: boolean; named: boolean; needsUnit: boolean; needsPurpose: boolean; active: boolean };
 	type Wallet = { id: number; name: string; kind: string; active: boolean };
 	type Unit = { id: number; name: string; kind: string };
@@ -28,7 +28,7 @@
 	let busy = $state(false);
 
 	let nb = $state({ date: localDate(), kind: '주일예배', counters: '' });
-	let f = $state({ accountId: 2, donor: null as Donor | null, amount: '', method: '현금', unitId: 0, purpose: '', memo: '' });
+	let f = $state({ hide: false, accountId: 2, donor: null as Donor | null, amount: '', method: '현금', unitId: 0, purpose: '', memo: '' });
 	let counted = $state<Record<string, string>>({});
 	let countersTxt = $state('');
 	let cl = $state({ cash: 0, bank: 0, reason: '' });
@@ -115,7 +115,7 @@
 	async function addLine() {
 		if (!cur) return;
 		const amount = Number(f.amount.replace(/,/g, ''));
-		const body = { accountId: f.accountId, donor: acct?.named ? (f.donor?.key ?? '') : '', amount, method: f.method, unitId: f.unitId || undefined, purpose: f.purpose, memo: f.memo };
+		const body = { hide: f.hide, accountId: f.accountId, donor: acct?.named ? (f.donor?.key ?? '') : '', amount, method: f.method, unitId: f.unitId || undefined, purpose: f.purpose, memo: f.memo };
 		if (await run(() => auth.api('POST', `/offering-batches/${cur!.batch.id}/lines`, body))) {
 			f.donor = null;
 			f.amount = '';
@@ -151,6 +151,9 @@
 			busy = false;
 		}
 	}
+	/** 입력한 줄을 주보 명단에 싣거나 뺀다 */
+	const toggleHide = (l: Line) =>
+		run(() => auth.api('POST', `/offering-lines/${l.id}`, { accountId: l.accountId, donor: l.donorId ? 'd:' + l.donorId : '', amount: l.amount, method: l.method, unitId: l.unitId || undefined, purpose: l.purpose ?? '', memo: l.memo ?? '', hide: !l.hide }));
 	const delLine = (l: Line) => run(() => auth.api('POST', `/offering-lines/${l.id}/delete`, {}));
 	const saveCounted = () => run(() => auth.api('POST', `/offering-batches/${cur!.batch.id}/counted`, { counted, counters: countersTxt }), '계수 금액을 저장했어요.');
 	async function close() {
@@ -242,6 +245,7 @@
 						{/if}
 						{#if acct?.needsPurpose}<input bind:value={f.purpose} placeholder="목적 (예: 장학, 구제)" maxlength="100" required />{/if}
 						<input bind:value={f.memo} placeholder="메모 (선택)" maxlength="255" />
+						{#if acct?.named}<label class="row fs-s"><span class="switch"><input type="checkbox" bind:checked={f.hide} /><i></i></span> 주보 헌금자 명단에 싣지 않기</label>{/if}
 						<button type="submit" disabled={busy}>입력 (Enter)</button>
 					</form>
 				{/if}
@@ -289,8 +293,8 @@
 								{#each cur.lines as l (l.id)}
 									<tr>
 										<td>{acctName(l.accountId)}{l.purpose ? ' · ' + l.purpose : ''}{l.unitId ? ' · ' + (units.find((u) => u.id === l.unitId)?.name ?? '') : ''}</td>
-										<td>{l.donor ?? '무기명'}</td><td class="right money">{won(l.amount)}</td><td>{l.method}</td>
-										<td class="right">{#if cur.entry}<button class="ghost sm" type="button" disabled={busy} onclick={() => delLine(l)}>삭제</button>{/if}</td>
+										<td>{l.donor ?? '무기명'}{#if l.hide}<small class="muted"> 주보 제외</small>{/if}</td><td class="right money">{won(l.amount)}</td><td>{l.method}</td>
+										<td class="right">{#if cur.entry}{#if l.donor}<button class="ghost sm" type="button" disabled={busy} onclick={() => toggleHide(l)}>{l.hide ? '주보에 싣기' : '주보 제외'}</button> {/if}<button class="ghost sm" type="button" disabled={busy} onclick={() => delLine(l)}>삭제</button>{/if}</td>
 									</tr>
 								{/each}
 							</tbody>

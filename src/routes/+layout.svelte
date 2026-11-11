@@ -50,6 +50,7 @@
 			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
 			isStaff && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
 			isAdmin && { to: '/admin/users', label: '재정 사용 승인', hint: '신청 승인·역할·열람 지정' },
+			isAdmin && { to: '/admin/church', label: '교회 정보·영수증·보안', hint: '고유번호·직인·서식·주민번호 방식' },
 			isAdmin && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' },
 			isAdmin && { to: '/admin/backup', label: '백업', hint: '내려받기·되살리기' }
 		]);

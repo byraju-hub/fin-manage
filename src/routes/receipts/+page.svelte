@@ -8,7 +8,7 @@
 	type P = { donorId: number; name: string; total: number; members: string[]; address: string; missingAddress: boolean; missingRrn: boolean; issued: { id: number; docNo: string; total: number; changed: boolean } | null };
 	type L = { id: number; docNo: string; name: string; total: number; issuedAt: string; void: boolean; reissued: number; correction: boolean };
 	type Donor = { id: number; name: string; member: boolean; donorNo: string | null; address: string | null; cmAddress: string; receiptTo: number | null; merged: number; hasRrn: boolean };
-	type Rc = { id: number; docNo: string; issuedAt: string; void: boolean; snapshot: { name: string; address: string; rrnMasked: string; rrnMode: string; church: { name: string; bizNo: string; address: string; rep: string }; lines: { label: string; amount: number }[]; total: number; taxYear: number; included: string[] }; rrnFull: string | null };
+	type Rc = { id: number; docNo: string; issuedAt: string; void: boolean; hasSeal?: boolean; snapshot: { name: string; address: string; rrnMasked: string; rrnMode: string; church: { name: string; bizNo: string; address: string; rep: string }; lines: { label: string; amount: number }[]; total: number; taxYear: number; included: string[]; code?: string }; rrnFull: string | null };
 
 	let year = $state(new Date().getFullYear() - 1);
 	let rrnMode = $state('none');
@@ -187,10 +187,10 @@
 			<tr><th></th><th>소재지</th><td colspan="3">{r.snapshot.church.address}</td></tr>
 		</tbody></table>
 		<table class="sm mt"><thead><tr><th>유형</th><th>구분</th><th>기부 기간</th><th class="right">기부 금액</th></tr></thead>
-			<tbody>{#each r.snapshot.lines as l}<tr><td>종교단체</td><td>지정기부금</td><td>{l.label}</td><td class="right">{won(l.amount)}</td></tr>{/each}<tr class="tot"><td colspan="3">합계</td><td class="right">{won(r.snapshot.total)}</td></tr></tbody></table>
+			<tbody>{#each r.snapshot.lines as l}<tr><td>종교단체{r.snapshot.code ? ' (' + r.snapshot.code + ')' : ''}</td><td>지정기부금</td><td>{l.label}</td><td class="right">{won(l.amount)}</td></tr>{/each}<tr class="tot"><td colspan="3">합계</td><td class="right">{won(r.snapshot.total)}</td></tr></tbody></table>
 		<p>위와 같이 기부금을 기부받았음을 증명합니다.</p>
 		<p style="text-align:center">{r.issuedAt.slice(0, 4)}년 {Number(r.issuedAt.slice(5, 7))}월 {Number(r.issuedAt.slice(8, 10))}일</p>
-		<p style="text-align:right"><b>{r.snapshot.church.name}</b> {r.snapshot.church.rep ? '대표 ' + r.snapshot.church.rep : ''} (인)</p>
+		<p style="text-align:right"><b>{r.snapshot.church.name}</b> {r.snapshot.church.rep ? '대표 ' + r.snapshot.church.rep : ''} (인){#if r.hasSeal}<img src={hrefTo('/api/v1/settings/seal')} alt="직인" style="height:60px;vertical-align:middle;margin-left:-2.2rem;opacity:.9" />{/if}</p>
 		{#if r.snapshot.included.length > 1}<p class="fs-s">합산 대상: {r.snapshot.included.join(', ')}</p>{/if}
 	</section>
 {/each}

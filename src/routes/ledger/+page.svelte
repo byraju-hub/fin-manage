@@ -3,8 +3,9 @@
 	import { onMount } from 'svelte';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { won, localDate, errText } from '#lib/fmt.ts';
+	import { hrefTo } from '#lib/paths.ts';
 
-	type Tx = { id: number; date: string; kind: string; wallet: string; toWallet: string | null; account: string | null; unit: string | null; item: string | null; amount: number; summary: string; vendor: string | null; source: string; isDirect: boolean; void: boolean; voidReason: string | null };
+	type Tx = { proofNote?: string | null; proofs?: { id: number; mime: string }[]; id: number; date: string; kind: string; wallet: string; toWallet: string | null; account: string | null; unit: string | null; item: string | null; amount: number; summary: string; vendor: string | null; source: string; isDirect: boolean; void: boolean; voidReason: string | null };
 	type Wallet = { id: number; name: string; balance: number; active: boolean };
 	type Acct = { id: number; parentId: number | null; name: string; isOffering: boolean; active: boolean };
 	type Item = { id: number; name: string; directOk: boolean; directLimit: number | null };
@@ -24,7 +25,9 @@
 	let err = $state('');
 	let notice = $state('');
 	let busy = $state(false);
-	let f = $state({ kind: '수입', date: localDate(), walletId: 0, toWalletId: 0, incomeAccountId: 0, budgetItemId: 0, amount: '', summary: '', vendor: '' });
+	let proofData = $state('');
+	let proofName = $state('');
+	let f = $state({ noProofReason: '', kind: '수입', date: localDate(), walletId: 0, toWalletId: 0, incomeAccountId: 0, budgetItemId: 0, amount: '', summary: '', vendor: '' });
 
 	const leafIncome = $derived(accts.filter((a) => !a.isOffering && a.active && !accts.some((x) => x.parentId === a.id) && a.parentId !== null));
 	const directItems = $derived(units.flatMap((u) => u.items.filter((i) => i.directOk).map((i) => ({ ...i, unit: u.name }))));
@@ -60,12 +63,15 @@
 		err = '';
 		notice = '';
 		try {
-			const body = { ...f, amount: Number(f.amount.replace(/,/g, '')), walletId: f.walletId, toWalletId: f.toWalletId || undefined, incomeAccountId: f.incomeAccountId || undefined, budgetItemId: f.budgetItemId || undefined };
+			const body = { ...f, proof: proofData ? { name: proofName, data: proofData } : undefined, amount: Number(f.amount.replace(/,/g, '')), walletId: f.walletId, toWalletId: f.toWalletId || undefined, incomeAccountId: f.incomeAccountId || undefined, budgetItemId: f.budgetItemId || undefined };
 			await auth.api('POST', '/transactions', body);
 			notice = f.kind + '을(를) 등록했어요.';
 			f.amount = '';
 			f.summary = '';
 			f.vendor = '';
+			f.noProofReason = '';
+			proofData = '';
+			proofName = '';
 			await load();
 		} catch (e) {
 			err = errText(e);
@@ -73,6 +79,47 @@
 			busy = false;
 		}
 	}
+	/** 영수증 사진을 줄여서 붙인다 (요청 크기 제한 때문에 약 75KB 이하) */
+	async function pickProof(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+		try {
+			if (file.type === 'application/pdf') {
+				if (file.size > 78000) throw new Error('PDF는 78KB 이하만 올릴 수 있어요. 사진으로 찍어 올리면 자동으로 줄여 줍니다.');
+				proofData = await toB64(file);
+				proofName = file.name;
+				return;
+			}
+			const bmp = await createImageBitmap(file);
+			let scale = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
+			for (let q = 0.8, n = 0; n < 8; n++) {
+				const c = document.createElement('canvas');
+				c.width = Math.round(bmp.width * scale);
+				c.height = Math.round(bmp.height * scale);
+				c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+				const blob: Blob = await new Promise((res) => c.toBlob((b) => res(b!), 'image/jpeg', q));
+				if (blob.size <= 75000) {
+					proofData = await toB64(blob);
+					proofName = file.name.replace(/\.\w+$/, '') + '.jpg';
+					return;
+				}
+				if (q > 0.5) q -= 0.1;
+				else scale *= 0.8;
+			}
+			throw new Error('사진을 충분히 줄이지 못했어요. 다른 사진으로 시도해 주세요.');
+		} catch (x) {
+			err = errText(x);
+		}
+	}
+	const toB64 = (b: Blob): Promise<string> =>
+		new Promise((res, rej) => {
+			const r = new FileReader();
+			r.onload = () => res(String(r.result).split(',')[1]);
+			r.onerror = () => rej(new Error('파일을 읽지 못했어요.'));
+			r.readAsDataURL(b);
+		});
 	async function voidTx(t: Tx) {
 		const reason = prompt(`'${t.summary}' 거래를 취소합니다. 사유를 적어 주세요. (기록에 남습니다)`);
 		if (!reason) return;
@@ -117,6 +164,10 @@
 			<input bind:value={f.amount} inputmode="numeric" placeholder="금액 (원)" required />
 			<input bind:value={f.summary} placeholder="적요" maxlength="255" required />
 			{#if f.kind !== '이체'}<input bind:value={f.vendor} placeholder="거래처 (선택)" maxlength="100" />{/if}
+			{#if f.kind === '지출'}
+				<label class="ghost sm" style="cursor:pointer;display:inline-block;padding:.45rem .8rem;border:1px solid var(--line-strong);border-radius:10px">{proofName ? '증빙: ' + proofName : '+ 영수증 사진·PDF'}<input type="file" accept="image/*,application/pdf" onchange={pickProof} style="display:none" /></label>
+				{#if !proofData}<input bind:value={f.noProofReason} placeholder="증빙이 없으면 사유" maxlength="255" />{/if}
+			{/if}
 			<button type="submit" disabled={busy}>등록</button>
 		</form>
 		{#if f.kind === '지출' && !directItems.length}<p class="fs-s muted">직접 지출이 허용된 예산 항목이 없어요. 재정 관리자가 예산 화면에서 항목마다 지정합니다. 그 밖의 지출은 지출결의서를 쓰세요.</p>{/if}
@@ -132,7 +183,7 @@
 				{#each items as t (t.id)}
 					<tr class:muted={t.void} style={t.void ? 'text-decoration:line-through' : ''}>
 						<td>{t.date}</td><td><span class="tag {t.kind === '수입' ? 'now' : t.kind === '지출' ? 'part' : ''}">{t.kind}</span></td>
-						<td>{t.summary}{#if t.account}<small class="muted"> {t.account}</small>{/if}{#if t.unit}<small class="muted"> {t.unit}{t.item ? ' · ' + t.item : ''}</small>{/if}{#if t.isDirect}<small class="muted"> 직접</small>{/if}{#if t.void}<small> 취소: {t.voidReason}</small>{/if}</td>
+						<td>{t.summary}{#if t.account}<small class="muted"> {t.account}</small>{/if}{#if t.unit}<small class="muted"> {t.unit}{t.item ? ' · ' + t.item : ''}</small>{/if}{#if t.isDirect}<small class="muted"> 직접</small>{/if}{#each t.proofs ?? [] as pf}<a class="tag now" href={hrefTo('/api/v1/transaction-files/' + pf.id)} target="_blank" rel="noopener">증빙</a>{/each}{#if t.proofNote}<small class="muted"> 증빙 없음: {t.proofNote}</small>{/if}{#if t.void}<small> 취소: {t.voidReason}</small>{/if}</td>
 						<td>{t.wallet}{t.toWallet ? ' → ' + t.toWallet : ''}</td>
 						<td class="right money">{won(t.amount)}</td>
 						<td class="right">{#if isStaff && !t.void && t.source === '직접'}<button class="ghost sm" type="button" onclick={() => voidTx(t)}>취소</button>{/if}</td>
