@@ -6,10 +6,12 @@ declare(strict_types=1);
 
 /** 이 번호보다 낮은 교적(ch-manage)에는 설치하지 않는다 */
 const FM_MIN_CM_SCHEMA = 6;
+/** 이 번호 이상이면 교적에 '재정 열기'용 입장권 표(sso_tickets)가 있다. (낮아도 재정은 쓸 수 있고, 입장권 로그인만 안 된다.) */
+const FM_CM_SSO_SCHEMA = 7;
 
 /** 재정이 읽는 교적 표와 열. 하나라도 없으면 교적 구조가 달라진 것이므로 연결을 막고 이유를 알려 준다. */
 const FM_CM_REQUIRED = [
-    'users' => ['id', 'login_id', 'password_hash', 'name', 'person_id', 'status', 'is_super', 'session_epoch', 'must_change_password', 'is_demo'],
+    'users' => ['id', 'login_id', 'password_hash', 'name', 'person_id', 'status', 'grade', 'is_super', 'session_epoch', 'must_change_password', 'is_demo'],
     'people' => ['id', 'name', 'birth_date', 'gender', 'phone', 'address_zip', 'address1', 'address2', 'category_id', 'name_note', 'purged_on'],
     'households' => ['id', 'no'],
     'household_members' => ['household_id', 'person_id', 'relation'],

@@ -8,7 +8,7 @@ function fm_security_headers(): void
 {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
-    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Referrer-Policy: no-referrer');
     header("Content-Security-Policy: frame-ancestors 'self'");
     header('Permissions-Policy: camera=(self), microphone=(), geolocation=()');
     if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) {
@@ -22,7 +22,7 @@ function fm_htaccess_outdated(): bool
     $ht = FM_ROOT . '/.htaccess';
     if (!is_file($ht)) return true;
     $s = (string)file_get_contents($ht);
-    return !str_contains($s, 'fin-manage-https') || !str_contains($s, 'fin-manage-headers');
+    return !str_contains($s, 'fin-manage-https') || !str_contains($s, 'fin-manage-headers') || !str_contains($s, 'Referrer-Policy "no-referrer"');
 }
 
 function json_out(mixed $data = null, int $status = 200): never

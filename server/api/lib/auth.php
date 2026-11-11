@@ -77,8 +77,8 @@ function current_account(): ?array
     session_boot();
     $id = $_SESSION['cm_uid'] ?? null;
     if (!$id) return $a = null;
-    $u = row('SELECT id, login_id, name, person_id, status, is_super, session_epoch, must_change_password, is_demo FROM ' . cmt('users') . ' WHERE id = ?', [$id]);
-    if (!$u || $u['status'] !== '사용' || (int)$u['is_demo'] === 1) {
+    $u = row('SELECT id, login_id, name, person_id, status, grade, is_super, session_epoch, must_change_password, is_demo FROM ' . cmt('users') . ' WHERE id = ?', [$id]);
+    if (!$u || !cm_user_eligible($u)) {
         unset($_SESSION['cm_uid']);
         return $a = null;
     }
@@ -90,6 +90,14 @@ function current_account(): ?array
     $acc = row('SELECT * FROM ' . t('access') . ' WHERE cm_user_id = ?', [$u['id']]);
     $roles = $acc ? array_column(rows('SELECT role FROM ' . t('access_roles') . ' WHERE access_id = ?', [$acc['id']]), 'role') : [];
     return $a = ['cm' => $u, 'access' => $acc, 'roles' => $roles, 'state' => account_state($u, $acc)];
+}
+
+/** 교적 계정이 재정을 쓸 수 있는 종류인가: 사용 중이고, 체험 계정이 아니며, 소그룹 인도자(등급 D)가 아닐 것(최고관리자는 예외) */
+function cm_user_eligible(array $u): bool
+{
+    if ($u['status'] !== '사용' || (int)$u['is_demo'] === 1) return false;
+    if (($u['grade'] ?? '') === 'D' && (int)($u['is_super'] ?? 0) === 0) return false;
+    return true;
 }
 
 function account_state(array $u, ?array $acc): string

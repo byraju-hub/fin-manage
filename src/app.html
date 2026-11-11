@@ -6,6 +6,21 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 		<meta name="theme-color" content="#ffffff" />
 		<meta name="robots" content="noindex" />
+		<!-- 주소에 입장권(?t=)이 실려 오는 /sso 화면에서 글꼴 서버 등 바깥으로 주소가 새지 않게 -->
+		<meta name="referrer" content="no-referrer" />
+		<script>
+			// 입장권은 읽자마자 주소창과 기록에서 지운다 (30초·1회용이지만 남기지 않는다)
+			(function () {
+				try {
+					var p = location.pathname;
+					if (/\/sso\/?$/.test(p)) {
+						var t = new URLSearchParams(location.search).get('t');
+						if (t) window.__fmTicket = t;
+						history.replaceState(null, '', p);
+					}
+				} catch (e) {}
+			})();
+		</script>
 		<link rel="icon" href="%sveltekit.assets%/favicon-32.png" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
 		<!-- 글꼴: 본문 Noto Sans KR, 제목(상단 교회 이름) 고운바탕 (Google Fonts) -->

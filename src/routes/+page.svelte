@@ -24,6 +24,7 @@
 		toPay: number;
 		openBatches: number;
 		pendingAccess: number;
+		cmSso: boolean;
 		fin: Fin;
 	};
 	let d = $state<Dash | null>(null);
@@ -42,6 +43,7 @@
 					d.waiting && { t: `결재할 문서 ${d.waiting}건`, to: '/approvals' },
 					d.toPay && { t: `지급 대기 결의서 ${d.toPay}건`, to: '/approvals' },
 					d.openBatches && { t: `마감하지 않은 헌금 묶음 ${d.openBatches}개`, to: '/offerings' },
+					d.isAdmin && !d.cmSso && { t: `교적(ch-manage)을 구조 번호 7 이상으로 올리면 교적에 '재정 열기' 버튼이 생겨요. (지금 ${d.cm.schema})`, to: '/' },
 					d.pendingAccess && { t: `재정 사용 승인 대기 ${d.pendingAccess}명`, to: '/admin/users' },
 					...d.fin.alerts.map((a) => ({ t: a.text, to: a.to }))
 				].filter((x): x is { t: string; to: string } => !!x)

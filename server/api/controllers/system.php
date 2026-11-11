@@ -86,6 +86,7 @@ route('GET', '/dashboard', function () {
         'waiting' => count(inbox_cards($a)['waiting']),
         'toPay' => has_role($a, '재정 담당') ? (int)val('SELECT COUNT(*) FROM ' . t('vouchers') . " WHERE status = '결재 완료'") : 0,
         'openBatches' => has_role($a, '재정 담당') ? (int)val('SELECT COUNT(*) FROM ' . t('offering_batches') . " WHERE status = '입력 중'") : 0,
+        'cmSso' => $cm['schema'] >= FM_CM_SSO_SCHEMA,
         'pendingAccess' => is_admin_account($a) ? (int)val('SELECT COUNT(*) FROM ' . t('access') . " WHERE status = '신청 대기'") : 0,
         'fin' => dashboard_finance($a),
     ]);

@@ -86,10 +86,14 @@
 		auth.init().then(async () => {
 			// 교적의 '재정 열기'로 들어온 경우: 주소의 입장권으로 로그인하고 첫 화면으로
 			if (stripBase(location.pathname) === '/sso') {
-				const t = new URLSearchParams(location.search).get('t') ?? '';
+				const w = window as unknown as { __fmTicket?: string };
+				const t = w.__fmTicket ?? '';
+				delete w.__fmTicket; // 메모리에서도 바로 지운다
 				try {
-					if (t) await auth.ssoLogin(t);
+					if (!t) throw new Error('입장권이 없어요. 교적에서 \'재정 열기\'를 다시 눌러 주세요.');
+					await auth.ssoLogin(t);
 				} catch (e) {
+					// 거절되면 안내와 함께 로그인 창이 그대로 보인다 (입장권 값은 어디에도 남기지 않는다)
 					msg = errMsg(e, '교적에서 열지 못했습니다. 아이디·비밀번호로 로그인해 주세요.');
 				}
 				goto(hrefTo('/'), { replaceState: true });

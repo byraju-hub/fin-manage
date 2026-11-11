@@ -36,7 +36,7 @@ route('POST', '/auth/login', function () {
     if ($pw === '' || strlen($pw) > 200) json_fail('invalid', '비밀번호를 입력해 주세요.', 422);
     if (login_throttled($loginId)) json_fail('throttled', '로그인에 여러 번 실패해서 잠시 막았습니다. 15분 뒤에 다시 시도해 주세요.', 429);
 
-    $u = row('SELECT id, password_hash, status, is_demo, session_epoch FROM ' . cmt('users') . ' WHERE login_id = ?', [$loginId]);
+    $u = row('SELECT id, password_hash, status, grade, is_super, is_demo, session_epoch FROM ' . cmt('users') . ' WHERE login_id = ?', [$loginId]);
     if (!$u) {
         password_verify($pw, '$2y$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234'); // 아이디가 있는지 없는지 응답 시간으로 알 수 없게
     }
@@ -44,6 +44,7 @@ route('POST', '/auth/login', function () {
         q('INSERT INTO ' . t('login_attempts') . ' (ip, login_id) VALUES (?, ?)', [client_ip(), $loginId]);
         json_fail('invalid_login', '아이디 또는 비밀번호가 맞지 않습니다.', 401);
     }
+    if (!cm_user_eligible($u) && $u['status'] === '사용') json_fail('not_eligible', '이 계정(소그룹 인도자)은 재정을 사용할 수 없습니다.', 403);
     if ($u['status'] !== '사용') {
         json_fail('inactive', $u['status'] === '정지' ? '정지된 계정입니다. 교적 관리자에게 문의해 주세요.' : '교적 관리에서 아직 승인되지 않은 계정입니다.', 403);
     }
@@ -110,7 +111,7 @@ route('POST', '/auth/sso', function () {
     session_boot();
     verify_csrf();
     $ticket = (string)(body()['ticket'] ?? '');
-    if (!preg_match('/^[A-Za-z0-9_\-]{32,128}$/', $ticket)) json_fail('invalid', '입장권이 올바르지 않습니다.', 422);
+    if (!preg_match('/^[A-Za-z0-9_\-]{32,128}$/', $ticket)) json_fail('invalid', '입장권이 올바르지 않습니다. 교적에서 다시 눌러 주세요.', 422);
     if (!val("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?", [fm_config()['cm_prefix'] . 'sso_tickets'])) json_fail('sso_unavailable', '교적 관리가 아직 이 기능을 지원하지 않습니다. 아이디·비밀번호로 로그인해 주세요.', 404);
     if (login_throttled('sso')) json_fail('throttled', '잠시 뒤에 다시 시도해 주세요.', 429);
     $uid = tx(function () use ($ticket) {
@@ -121,10 +122,11 @@ route('POST', '/auth/sso', function () {
     });
     if (!$uid) {
         q('INSERT INTO ' . t('login_attempts') . ' (ip, login_id) VALUES (?, ?)', [client_ip(), 'sso']);
-        json_fail('invalid_ticket', '입장권이 만료되었거나 이미 사용되었습니다. 교적에서 다시 눌러 주세요.', 401);
+        json_fail('invalid_ticket', '입장권이 만료되었거나 이미 사용되었어요. 교적에서 다시 눌러 주세요.', 401);
     }
-    $u = row('SELECT id, login_id, status, is_demo, session_epoch FROM ' . cmt('users') . ' WHERE id = ?', [$uid]);
-    if (!$u || $u['status'] !== '사용' || (int)$u['is_demo'] === 1) json_fail('inactive', '사용할 수 없는 계정입니다.', 403);
+    // 입장권을 받은 뒤 30초 사이에 계정 상태가 바뀌었을 수 있으니 세션을 만들기 직전에 교적 계정을 다시 확인한다
+    $u = row('SELECT id, login_id, status, grade, is_super, is_demo, session_epoch FROM ' . cmt('users') . ' WHERE id = ?', [$uid]);
+    if (!$u || !cm_user_eligible($u)) json_fail('inactive', '이 교적 계정은 재정을 사용할 수 없습니다.', 403);
     session_regenerate_id(true);
     $_SESSION['cm_uid'] = (int)$u['id'];
     $_SESSION['epoch'] = (int)$u['session_epoch'];
