@@ -105,7 +105,7 @@ route('GET', '/offering-batches', function () {
     if (!has_role($a, '재정 담당', '계수 위원') && !can_see_totals($a)) json_fail('forbidden', '권한이 없습니다.', 403);
     $year = in_int($_GET, 'year', 2000, 2100, '연도');
     $own = !has_role($a, '재정 담당') && !can_see_totals($a); // 계수 위원만 있는 사람은 자기 묶음만
-    $sql = 'SELECT * FROM ' . t('offering_batches') . ' WHERE fiscal_year = ?' . ($own ? ' AND created_by = ' . (int)$a['access']['id'] : '') . ' ORDER BY batch_date DESC, id DESC LIMIT 300';
+    $sql = 'SELECT * FROM ' . t('offering_batches') . ' WHERE fiscal_year = ?' . ($own ? " AND status = '입력 중' AND created_by = " . (int)$a['access']['id'] : '') . ' ORDER BY batch_date DESC, id DESC LIMIT 300';
     $items = array_map(fn($b) => batch_item($b), rows($sql, [$year]));
     json_out(['items' => $items]);
 });
@@ -128,7 +128,8 @@ route('GET', '/offering-batches/{id}', function (int $id) {
     $a = require_account();
     $b = row('SELECT * FROM ' . t('offering_batches') . ' WHERE id = ?', [$id]);
     if (!$b) json_fail('not_found', '헌금 묶음을 찾을 수 없습니다.', 404);
-    $entry = has_role($a, '재정 담당') || (has_role($a, '계수 위원') && (int)$b['created_by'] === (int)$a['access']['id']);
+    // 계수 위원은 입력 중인 자기 묶음만 본다. 마감하면 더 볼 수 없다. (재정 담당·열람 권한자는 마감 뒤에도 본다)
+    $entry = has_role($a, '재정 담당') || (has_role($a, '계수 위원') && $b['status'] === '입력 중' && (int)$b['created_by'] === (int)$a['access']['id']);
     $seeNames = $entry || can_view_donors($a);
     if (!$entry && !can_see_totals($a)) json_fail('forbidden', '권한이 없습니다.', 403);
     $lines = [];

@@ -16,6 +16,8 @@
 	let year = $state(0);
 	let month = $state('');
 	let items = $state<Tx[]>([]);
+	let total = $state(0);
+	let limit = $state(500);
 	let wallets = $state<Wallet[]>([]);
 	let accts = $state<Acct[]>([]);
 	let units = $state<Unit[]>([]);
@@ -40,7 +42,9 @@
 	}
 	async function load() {
 		try {
-			items = (await auth.api<{ items: Tx[] }>('GET', `/ledger?year=${year}${month ? '&month=' + month : ''}`)).items;
+			const r = await auth.api<{ items: Tx[]; total: number }>('GET', `/ledger?year=${year}${month ? '&month=' + month : ''}&limit=${limit}`);
+			items = r.items;
+			total = r.total;
 			wallets = (await auth.api<{ items: Wallet[] }>('GET', '/wallets/balances')).items;
 			if (!f.walletId) f.walletId = wallets.find((w) => w.active)?.id ?? 0;
 			units = (await auth.api<{ units: Unit[] }>('GET', '/budget?year=' + year)).units;
@@ -120,7 +124,7 @@
 {/if}
 
 <div class="card">
-	<div class="card-head"><h2>거래 내역</h2><span class="sub">{items.length}건</span></div>
+	<div class="card-head"><h2>거래 내역</h2><span class="sub">{items.length}건{total > items.length ? ' / 전체 ' + total + '건' : ''}</span></div>
 	<div class="scroll-x">
 		<table class="sm">
 			<thead><tr><th>날짜</th><th>구분</th><th>내용</th><th>계좌</th><th class="right">금액</th><th></th></tr></thead>
@@ -139,4 +143,7 @@
 			</tbody>
 		</table>
 	</div>
+	{#if total > items.length}
+		<div class="warn fs-s">최근 {items.length}건만 보여 드려요 (전체 {total}건). 월을 고르거나 <button class="ghost sm" type="button" onclick={() => { limit = Math.min(5000, limit + 1000); load(); }}>더 보기</button> 를 누르세요. 전체는 보고서 · 엑셀로 받을 수 있어요.</div>
+	{/if}
 </div>

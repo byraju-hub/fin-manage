@@ -138,7 +138,7 @@
 	/** 사진을 줄여서 올린다 (호스팅의 요청 크기 제한 때문에 약 90KB 이하로) */
 	async function shrink(file: File): Promise<{ data: string; name: string }> {
 		if (file.type === 'application/pdf') {
-			if (file.size > 95000) throw new Error('PDF는 95KB 이하만 올릴 수 있어요. 사진으로 찍어 올리면 자동으로 줄여 줍니다.');
+			if (file.size > 78000) throw new Error('PDF는 78KB 이하만 올릴 수 있어요. 사진으로 찍어 올리면 자동으로 줄여 줍니다.');
 			return { data: await b64(file), name: file.name };
 		}
 		const bmp = await createImageBitmap(file);
@@ -149,7 +149,7 @@
 			c.height = Math.round(bmp.height * scale);
 			c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
 			const blob: Blob = await new Promise((res) => c.toBlob((b) => res(b!), 'image/jpeg', q));
-			if (blob.size <= 90000) return { data: await b64(blob), name: file.name.replace(/\.\w+$/, '') + '.jpg' };
+			if (blob.size <= 75000) return { data: await b64(blob), name: file.name.replace(/\.\w+$/, '') + '.jpg' };
 			if (q > 0.5) q -= 0.1;
 			else scale *= 0.8;
 		}
@@ -206,7 +206,7 @@
 {#if err}<div class="warn no-print">{err}</div>{/if}
 {#if notice}<div class="note no-print">{notice}</div>{/if}
 
-<div class="two" style="grid-template-columns:minmax(250px,.55fr) minmax(0,1.45fr)">
+<div class="two two-l">
 	<div class="card no-print">
 		<div class="card-head"><h2>목록</h2>
 			<select bind:value={status} onchange={loadList} style="width:auto" aria-label="상태"><option value="">전체</option>{#each ['작성 중', '결재 중', '결재 완료', '지급 완료', '반려', '회수', '취소'] as s}<option>{s}</option>{/each}</select>

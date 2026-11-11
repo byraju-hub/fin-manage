@@ -20,10 +20,21 @@ function sample_busy(): ?string
     return null;
 }
 
+/** 샘플을 올린 뒤 개수가 달라진 항목 (샘플 밖의 자료가 들어왔다는 뜻) */
+function sample_changes(array $info): array
+{
+    $now = ['헌금 묶음' => (int)val('SELECT COUNT(*) FROM ' . t('offering_batches')), '헌금' => (int)val('SELECT COUNT(*) FROM ' . t('offerings')), '장부 거래' => (int)val('SELECT COUNT(*) FROM ' . t('transactions')),
+        '예산 항목' => (int)val('SELECT COUNT(*) FROM ' . t('budget_items')), '결의서' => (int)val('SELECT COUNT(*) FROM ' . t('vouchers')), '영수증' => (int)val('SELECT COUNT(*) FROM ' . t('receipts'))];
+    $was = ($info['counts'] ?? []) + ['영수증' => 0];
+    $out = [];
+    foreach ($now as $k => $n) if (isset($was[$k]) && $n !== (int)$was[$k]) $out[$k] = ['was' => (int)$was[$k], 'now' => $n];
+    return $out;
+}
+
 route('GET', '/admin/sample', function () {
     require_admin();
     $info = sample_info();
-    json_out(['loaded' => $info !== null, 'busy' => $info === null ? sample_busy() : null, 'info' => $info, 'cmPeople' => cm_status()['people']]);
+    json_out(['loaded' => $info !== null, 'busy' => $info === null ? sample_busy() : null, 'info' => $info, 'changes' => $info ? sample_changes($info) : new stdClass(), 'cmPeople' => cm_status()['people']]);
 });
 
 route('POST', '/admin/sample/load', function () {
@@ -42,7 +53,10 @@ route('POST', '/admin/sample/clear', function () {
     require_reconfirm();
     $info = sample_info();
     if (!$info) json_fail('invalid_state', '지울 샘플 자료가 없습니다.', 409);
-    if (($info['changedSince'] ?? false) === false) { /* 표시용 필드, 현재는 항상 지운다 */ }
+    $ch = sample_changes($info);
+    if ($ch && empty(body()['force'])) {
+        json_fail('changed', '샘플을 올린 뒤에 직접 입력하거나 바꾼 자료가 있어요 (' . implode(', ', array_map(fn($k, $v) => "$k {$v['was']}→{$v['now']}", array_keys($ch), $ch)) . '). 지우면 이 자료도 함께 사라집니다.', 409);
+    }
     tx(fn() => sample_clear($info));
     audit('샘플 자료 지우기', '', $a);
     json_out(null);

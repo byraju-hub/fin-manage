@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 const FM_BACKUP_FORMAT = 'fin-manage-backup';
 const FM_BACKUP_SKIP = ['login_attempts'];
+// 되살릴 때 지금 것을 그대로 두는 표: 누가 재정을 쓸 수 있는지(승인·역할)와 설정, 접속·변경 기록. 옛 백업으로 되돌려도 관리자가 잠기지 않게 한다.
+const FM_RESTORE_KEEP = ['access', 'access_roles', 'settings', 'access_log', 'change_log'];
 
 function backup_tables(): array
 {
@@ -57,7 +59,7 @@ route('POST', '/backup/restore/chunk', function () {
     if (!preg_match('/^[a-f0-9]{8,32}$/', $id)) json_fail('invalid', '업로드 번호가 올바르지 않습니다.', 422);
     $i = in_int($b, 'i', 0, 2000, '조각 번호');
     $data = (string)($b['data'] ?? '');
-    if ($data === '' || strlen($data) > 110000) json_fail('invalid', '조각 크기가 올바르지 않습니다.', 422);
+    if ($data === '' || strlen($data) > 100000) json_fail('invalid', '조각 크기가 올바르지 않습니다.', 422);
     $dir = FM_DATA . '/restore';
     if (!is_dir($dir)) @mkdir($dir, 0700, true);
     file_put_contents($dir . "/$id-$i.part", $data);
@@ -94,7 +96,7 @@ route('POST', '/backup/restore/apply', function () {
     try {
         $pdo->beginTransaction();
         foreach ($known as $name) {
-            if (!array_key_exists($name, $d['tables'])) continue;
+            if (in_array($name, FM_RESTORE_KEEP, true) || !array_key_exists($name, $d['tables'])) continue;
             q('DELETE FROM ' . t($name));
             foreach ($d['tables'][$name] as $r) {
                 if (!is_array($r) || !$r) continue;

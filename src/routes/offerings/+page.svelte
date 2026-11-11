@@ -191,7 +191,7 @@
 {#if err}<div class="warn">{err}</div>{/if}
 {#if notice}<div class="note">{notice}</div>{/if}
 
-<div class="two" style="grid-template-columns:minmax(260px,.55fr) minmax(0,1.45fr)">
+<div class="two two-l">
 	<div>
 		<div class="card">
 			<div class="card-head"><h2>새 헌금 묶음</h2></div>

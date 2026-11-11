@@ -228,8 +228,9 @@ tr.hit td { background: #fff8e8; }
 .flow.v .dot { grid-row: 1 / span 4; margin: 0; }
 .two { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 1.1rem; align-items: start; }
 .two > .card { margin-bottom: 1.1rem; }
+.two.two-l { grid-template-columns: minmax(250px, 0.55fr) minmax(0, 1.45fr); }
 .sticky-col { position: sticky; top: 84px; }
-@media (max-width: 960px) { .two { grid-template-columns: 1fr; } .sticky-col { position: static; } }
+@media (max-width: 960px) { .two, .two.two-l { grid-template-columns: 1fr; } .sticky-col { position: static; } }
 
 /* 보정: 큰 숫자 카드에서 '원'이 줄바꿈되지 않게, 자동완성 목록이 카드 밖으로 나오게 */
 .kpi b { font-size: 1.55rem; white-space: nowrap; }

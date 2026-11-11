@@ -20,7 +20,17 @@
 		err = '';
 		notice = '';
 		try {
-			await auth.guard(() => auth.api('POST', '/admin/sample/' + kind, {}));
+			await auth.guard(async () => {
+				try {
+					await auth.api('POST', '/admin/sample/' + kind, {});
+				} catch (e) {
+					// 샘플 뒤에 직접 넣은 자료가 있으면, 한 번 더 분명히 물은 뒤에만 지운다
+					if (e instanceof Error && (e as { code?: string }).code === 'changed' && confirm(e.message + '
+
+그래도 모두 지울까요?')) await auth.api('POST', '/admin/sample/' + kind, { force: true });
+					else throw e;
+				}
+			});
 			notice = kind === 'load' ? '샘플 자료를 올렸어요. 헌금·장부·예산·결의서·영수증(작년) 화면에서 확인해 보세요.' : '샘플 자료를 지웠어요.';
 			await loadSample();
 		} catch (e) {
@@ -73,7 +83,7 @@
 		try {
 			const text = await file.text();
 			const id = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, '0')).join('');
-			const size = 60000;
+			const size = 28000; // 한글은 글자당 3바이트라 요청 크기 제한(128KB) 안에 들도록
 			const n = Math.ceil(text.length / size);
 			await auth.guard(async () => {
 				for (let i = 0; i < n; i++) await auth.api('POST', '/backup/restore/chunk', { id, i, data: text.slice(i * size, (i + 1) * size) });
@@ -103,7 +113,7 @@
 
 <div class="card">
 	<div class="card-head"><h2>되살리기</h2><span class="sub">지금 재정 자료를 모두 백업 내용으로 바꿉니다</span></div>
-	<div class="warn fs-s">되돌릴 수 없는 작업입니다. 같은 버전에서 만든 백업만 되살릴 수 있고, 지금 상태는 서버 data/backups 에 파일로 먼저 남습니다.</div>
+	<div class="warn fs-s">되돌릴 수 없는 작업입니다. 같은 버전에서 만든 백업만 되살릴 수 있고, 지금 상태는 서버 data/backups 에 파일로 먼저 남습니다. 재정 사용 승인·역할, 설정, 접속·변경 기록은 지금 것을 그대로 둡니다. (그래서 되살린 뒤에도 관리자가 잠기지 않아요.)</div>
 	<div class="form">
 		<input type="file" accept="application/json,.json" onchange={(e) => (file = (e.target as HTMLInputElement).files?.[0] ?? null)} />
 		<input bind:value={word} placeholder="확인 문구: 되살리기" />

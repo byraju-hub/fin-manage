@@ -71,10 +71,12 @@ route('GET', '/ledger', function () {
     $p = [$year];
     if (!empty($_GET['wallet'])) { $w[] = '(t.wallet_id = ? OR t.to_wallet_id = ?)'; $p[] = (int)$_GET['wallet']; $p[] = (int)$_GET['wallet']; }
     if (!empty($_GET['month']) && preg_match('/^\d{4}-\d{2}$/', (string)$_GET['month'])) { $w[] = "DATE_FORMAT(t.tx_date, '%Y-%m') = ?"; $p[] = (string)$_GET['month']; }
+    $limit = isset($_GET['limit']) ? in_int($_GET, 'limit', 100, 5000, '건수') : 500;
+    $total = (int)val('SELECT COUNT(*) FROM ' . t('transactions') . ' t WHERE ' . implode(' AND ', $w), $p);
     $r = rows('SELECT t.*, w.name AS wname, w2.name AS w2name, ia.name AS aname, u.name AS uname, bi.name AS iname FROM ' . t('transactions') . ' t JOIN ' . t('wallets') . ' w ON w.id = t.wallet_id LEFT JOIN ' . t('wallets') . ' w2 ON w2.id = t.to_wallet_id
               LEFT JOIN ' . t('income_accounts') . ' ia ON ia.id = t.income_account_id LEFT JOIN ' . t('units') . ' u ON u.id = t.unit_id LEFT JOIN ' . t('budget_items') . ' bi ON bi.id = t.budget_item_id
-              WHERE ' . implode(' AND ', $w) . ' ORDER BY t.tx_date DESC, t.id DESC LIMIT 500', $p);
-    json_out(['items' => array_map(fn($x) => [
+              WHERE ' . implode(' AND ', $w) . ' ORDER BY t.tx_date DESC, t.id DESC LIMIT ' . $limit, $p);
+    json_out(['total' => $total, 'limit' => $limit, 'items' => array_map(fn($x) => [
         'id' => (int)$x['id'], 'date' => $x['tx_date'], 'kind' => $x['kind'], 'wallet' => $x['wname'], 'toWallet' => $x['w2name'], 'account' => $x['aname'], 'unit' => $x['uname'], 'item' => $x['iname'],
         'amount' => (int)$x['amount'], 'summary' => $x['summary'], 'vendor' => $x['vendor'], 'source' => $x['source'], 'isDirect' => (int)$x['is_direct'] === 1, 'checked' => $x['direct_checked_at'] !== null,
         'void' => $x['void_at'] !== null, 'voidReason' => $x['void_reason'],

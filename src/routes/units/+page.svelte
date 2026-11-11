@@ -135,7 +135,7 @@
 		</div>
 	{/if}
 
-	<div class="two" style="grid-template-columns:minmax(260px,.6fr) minmax(0,1.4fr)">
+	<div class="two two-l">
 		<div class="card">
 			<div class="card-head"><h2>조직표</h2><span class="sub">{year}</span></div>
 			<ul class="tree-l">

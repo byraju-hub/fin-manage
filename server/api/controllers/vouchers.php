@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 const FM_PAY_METHODS = ['계좌이체', '먼저 쓰고 청구', '현금', '법인카드'];
 const FM_STEP_ROLES = ['부서장', '위원장', '재정위원장', '담임목사'];
-const FM_FILE_MAX = 98000; // 한 번에 보낼 수 있는 요청이 작아서(호스팅 제한) 사진은 화면에서 줄여 올린다
+const FM_FILE_MAX = 80000; // 호스팅의 요청 크기 제한(128KB)을 base64(약 1.33배)로 보내도 넘지 않게. 사진은 화면에서 줄여 올린다
 
 // ---------- 결재 규칙(관리자) ----------
 function rules_payload(): array
@@ -89,9 +89,9 @@ route('POST', '/delegations/{id}/delete', function (int $id) {
 });
 
 // ---------- 결재선 만들기 ----------
-function finance_chief(string $role): ?array
+function finance_chief(string $role, ?string $notPerson = null): ?array
 {
-    $r = row('SELECT a.person_id, a.name FROM ' . t('access') . ' a JOIN ' . t('access_roles') . " r ON r.access_id = a.id WHERE r.role = ? AND a.status = '사용' AND a.person_id IS NOT NULL ORDER BY a.id LIMIT 1", [$role]);
+    $r = row('SELECT a.person_id, a.name FROM ' . t('access') . ' a JOIN ' . t('access_roles') . " r ON r.access_id = a.id WHERE r.role = ? AND a.status = '사용' AND a.person_id IS NOT NULL AND a.person_id <> ? ORDER BY a.id LIMIT 1", [$role, $notPerson ?? '']);
     return $r ? ['person_id' => $r['person_id'], 'name' => $r['name']] : null;
 }
 
@@ -128,6 +128,13 @@ function build_steps(array $v, array $items): array
     if (!empty($add['over_budget']) && !in_array($add['over_budget'], $have, true) && over_budget($v, $items)) { $steps[] = ['role' => $add['over_budget'], 'mode' => '결재']; $have[] = $add['over_budget']; }
     if (!empty($add['reserve']) && $unit['kind'] === '예비비' && !in_array($add['reserve'], $have, true)) $steps[] = ['role' => $add['reserve'], 'mode' => '결재'];
 
+    // 기안자 본인이 재정위원장이면 그 단계를 담임목사가, 담임목사이면 그 단계를 재정위원장이 맡는다 (자기 결의서를 자기가 결재하지 않게)
+    $dRoles = array_column(rows('SELECT r.role FROM ' . t('access_roles') . ' r JOIN ' . t('access') . " a ON a.id = r.access_id WHERE a.person_id = ? AND a.status = '사용'", [$v['drafter_person_id']]), 'role');
+    foreach ($steps as &$st) {
+        if ($st['role'] === '재정위원장' && in_array('재정위원장', $dRoles, true)) $st['role'] = '담임목사';
+        elseif ($st['role'] === '담임목사' && in_array('담임목사', $dRoles, true)) $st['role'] = '재정위원장';
+    }
+    unset($st);
     $out = [];
     foreach ($steps as $s) {
         $role = $s['role'];
@@ -140,7 +147,7 @@ function build_steps(array $v, array $items): array
             if (!$cid) continue; // 위원회에 속하지 않는 단위(기타·예비비)는 위원장 단계가 없다
             $p = unit_person($cid, '위원장');
         } else {
-            $p = finance_chief($role);
+            $p = finance_chief($role, $v['drafter_person_id']);
         }
         if (!$p) return ['error' => ($role === '부서장' || $role === '위원장' ? $unit['name'] . '의 ' : '') . $role . ' 담당자가 지정되지 않았습니다. ' . ($role === '재정위원장' || $role === '담임목사' ? '재정 사용 승인 화면에서 해당 역할을 가진 사람을 지정해 주세요.' : '재정 단위 화면에서 지정해 주세요.'), 'steps' => [], 'rule' => (int)$rule['id']];
         $out[] = ['role' => $role, 'person_id' => $p['person_id'], 'name' => $p['name'], 'mode' => $s['mode'], 'status' => '대기', 'comment' => null];
@@ -225,8 +232,17 @@ function step_actor(array $a, array $step): ?string
     $pid = $a['cm']['person_id'] ?? null;
     if (!$pid || !$step['approver_person_id']) return null;
     if ($step['approver_person_id'] === $pid) return 'self';
+    foreach (['재정위원장', '담임목사'] as $r) {
+        if (str_contains((string)$step['role'], $r) && has_role($a, $r) && !is_drafter_of($step, $pid)) return 'self'; // 같은 역할을 가진 다른 분도 결재할 수 있다
+    }
     if (val('SELECT COUNT(*) FROM ' . t('delegations') . ' WHERE from_person_id = ? AND to_person_id = ? AND CURDATE() BETWEEN starts_on AND ends_on', [$step['approver_person_id'], $pid])) return 'delegate';
     return null;
+}
+
+/** 이 단계의 결의서를 내가 기안했는가 (자기 결의서는 결재할 수 없다) */
+function is_drafter_of(array $step, string $pid): bool
+{
+    return (string)val('SELECT drafter_person_id FROM ' . t('vouchers') . ' WHERE id = ?', [$step['voucher_id']]) === $pid;
 }
 
 function voucher_detail(array $a, array $v): array
@@ -283,7 +299,14 @@ function inbox_cards(array $a): array
     $wait = [];
     $confirm = [];
     if ($pid) {
-        $cands = rows('SELECT v.* FROM ' . t('vouchers') . " v WHERE v.status IN ('결재 중','결재 완료','지급 완료') AND v.id IN (SELECT voucher_id FROM " . t('approval_steps') . " WHERE status = '대기') ORDER BY v.id LIMIT 300");
+        // 내 단계이거나, 지금 기간 안에 나에게 대결을 맡긴 결재자의 단계가 있는 문서만 (건수에 상관없이 빠지지 않는다)
+        $pids = array_merge([$pid], array_column(rows('SELECT from_person_id FROM ' . t('delegations') . ' WHERE to_person_id = ? AND CURDATE() BETWEEN starts_on AND ends_on', [$pid]), 'from_person_id'));
+        $roleIn = [];
+        foreach (['재정위원장', '담임목사'] as $r) if (has_role($a, $r)) $roleIn[] = '%' . $r . '%';
+        $cond = 'approver_person_id IN (' . marks($pids) . ')';
+        $params = $pids;
+        foreach ($roleIn as $like) { $cond .= ' OR role LIKE ?'; $params[] = $like; }
+        $cands = rows('SELECT v.* FROM ' . t('vouchers') . " v WHERE v.status IN ('결재 중','결재 완료','지급 완료') AND v.id IN (SELECT voucher_id FROM " . t('approval_steps') . " WHERE status = '대기' AND ($cond)) ORDER BY v.id", $params);
         foreach ($cands as $v) {
             $cur = current_step($v);
             $u = row('SELECT name FROM ' . t('units') . ' WHERE id = ?', [$v['unit_id']]);
