@@ -85,6 +85,13 @@ class Auth {
 		this.me = r.me;
 	}
 
+	/** 교적의 '재정 열기'에서 넘어온 1회용 입장권으로 로그인 */
+	async ssoLogin(ticket: string) {
+		const r = await this.api<{ csrf: string; me: Me }>('POST', '/auth/sso', { ticket });
+		this.csrf = r.csrf;
+		this.me = r.me;
+	}
+
 	async logout() {
 		try {
 			await this.api('POST', '/auth/logout');

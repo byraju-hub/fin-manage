@@ -76,7 +76,18 @@
 	const roleLabel = $derived(me?.access?.isAdmin ? '재정 관리자' : (me?.access?.roles[0] ?? ''));
 
 	onMount(() => {
-		auth.init();
+		auth.init().then(async () => {
+			// 교적의 '재정 열기'로 들어온 경우: 주소의 입장권으로 로그인하고 첫 화면으로
+			if (stripBase(location.pathname) === '/sso') {
+				const t = new URLSearchParams(location.search).get('t') ?? '';
+				try {
+					if (t) await auth.ssoLogin(t);
+				} catch (e) {
+					msg = errMsg(e, '교적에서 열지 못했습니다. 아이디·비밀번호로 로그인해 주세요.');
+				}
+				goto(hrefTo('/'), { replaceState: true });
+			}
+		});
 		const touch = () => (last = Date.now());
 		const outside = (e: MouseEvent) => {
 			if (!(e.target as HTMLElement).closest?.('.perm')) userOpen = false;
