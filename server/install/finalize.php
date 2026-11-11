@@ -34,7 +34,7 @@ function fm_needs_finalize(): bool
     if (!is_file($index)) return false;
     $ht = FM_ROOT . '/.htaccess';
     $h = is_file($ht) ? (string)file_get_contents($ht) : '';
-    return str_contains((string)file_get_contents($index), FM_PLACEHOLDER) || !str_contains($h, 'fin-manage-https') || !str_contains($h, 'fin-manage-headers');
+    return str_contains((string)file_get_contents($index), FM_PLACEHOLDER) || !str_contains($h, 'fin-manage-https') || !str_contains($h, 'fin-manage-headers') || str_contains($h, 'Referrer-Policy "strict-origin-when-cross-origin"');
 }
 
 /** 화면 파일 안의 자리표시자를 실제 폴더 주소로 바꾸고, 주소 처리용 .htaccess 를 만든다. 바꾼 파일 수를 돌려준다. */
@@ -81,6 +81,12 @@ function fm_finalize_web(): int
     }
     if (is_file($ht) && !str_contains((string)file_get_contents($ht), 'fin-manage-headers')) {
         @file_put_contents($ht, "\n" . FM_HEADER_RULES, FILE_APPEND | LOCK_EX);
+    }
+    // 예전 버전이 적어 둔 Referrer-Policy 한 줄만 새 값으로 바꾼다 (입장권 주소가 바깥으로 새지 않게). 직접 고친 다른 부분은 건드리지 않는다.
+    if (is_file($ht)) {
+        $cur = (string)file_get_contents($ht);
+        $fix = str_replace('Referrer-Policy "strict-origin-when-cross-origin"', 'Referrer-Policy "no-referrer"', $cur);
+        if ($fix !== $cur) @file_put_contents($ht, $fix, LOCK_EX);
     }
     return $changed;
 }
