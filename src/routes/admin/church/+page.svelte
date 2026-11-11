@@ -5,13 +5,14 @@
 	import { hrefTo } from '#lib/paths.ts';
 	import { errText } from '#lib/fmt.ts';
 
-	type S = { church: { name?: string; bizNo?: string; address?: string; pastorName?: string; phone?: string }; rrnMode: string; overBudget: string; hasSeal: boolean; receiptForm: { line_mode: string; code: string } };
+	type S = { links?: { cm: string; dm: string }; church: { name?: string; bizNo?: string; address?: string; pastorName?: string; phone?: string }; rrnMode: string; overBudget: string; hasSeal: boolean; receiptForm: { line_mode: string; code: string } };
 	let st = $state<S | null>(null);
 	let church = $state({ name: '', bizNo: '', address: '', pastorName: '', phone: '' });
 	let form = $state({ lineMode: 'year', code: '41' });
 	let err = $state('');
 	let notice = $state('');
 	let busy = $state(false);
+	let links = $state({ cm: 'cm', dm: '' });
 	let purgeYears = $state(5);
 	let purgeCount = $state<number | null>(null);
 	let newKey = $state('');
@@ -21,6 +22,7 @@
 		try {
 			st = await auth.api<S>('GET', '/settings');
 			church = { name: st.church.name ?? '', bizNo: st.church.bizNo ?? '', address: st.church.address ?? '', pastorName: st.church.pastorName ?? '', phone: st.church.phone ?? '' };
+			links = { cm: st.links?.cm ?? 'cm', dm: st.links?.dm ?? '' };
 			form = { lineMode: st.receiptForm.line_mode, code: st.receiptForm.code };
 			err = '';
 		} catch (e) {
@@ -44,6 +46,7 @@
 		}
 	}
 	const saveChurch = () => run(() => auth.api('POST', '/settings/church', church), '교회 정보를 저장했어요. 이미 발급한 영수증은 발급 당시 내용 그대로 남습니다.');
+	const saveLinks = () => run(() => auth.api('POST', '/settings/links', links), '바로가기를 저장했어요.');
 	const saveForm = () => run(() => auth.api('POST', '/settings/receipt-form', form), '영수증 서식을 저장했어요.');
 	const setOver = (mode: string) => run(() => auth.api('POST', '/settings/over-budget', { mode }), '예산 초과 처리 방식을 바꿨어요.');
 
@@ -140,6 +143,16 @@
 		{#if !st.church.bizNo || !st.church.address}<div class="warn fs-s">고유번호와 소재지가 비어 있으면 기부금 영수증에 빈칸으로 나가요. 영수증을 발급하기 전에 꼭 채워 주세요.</div>{/if}
 		<div class="row mt" style="justify-content:flex-end"><button type="submit" disabled={busy}>저장</button></div>
 	</form>
+
+	<div class="card">
+		<div class="card-head"><h2>다른 프로그램 바로가기</h2><span class="sub">상단 '바로가기' 메뉴</span></div>
+		<div class="form">
+			<label class="fs-s" style="display:flex;flex-direction:column;gap:.25rem">교적 관리 폴더 이름 (비우면 숨김)<input bind:value={links.cm} placeholder="cm" maxlength="40" /></label>
+			<label class="fs-s" style="display:flex;flex-direction:column;gap:.25rem">부서 관리 폴더 이름 (쓰지 않으면 비움)<input bind:value={links.dm} placeholder="dm" maxlength="40" /></label>
+		</div>
+		<p class="fs-s muted">재정 폴더와 같은 곳(예: 같은 도메인의 <code>/cm/</code>, <code>/dm/</code>)에 설치된 프로그램의 폴더 이름을 적으면 상단에서 한 번에 이동할 수 있어요. 교적에서 재정으로 오는 버튼은 교적 쪽 작업입니다(docs/ch-manage-changes.md).</p>
+		<div class="row mt" style="justify-content:flex-end"><button type="button" disabled={busy} onclick={saveLinks}>저장</button></div>
+	</div>
 
 	<div class="card">
 		<div class="card-head"><h2>직인</h2><span class="sub">영수증 '(인)' 자리에 인쇄됩니다</span></div>

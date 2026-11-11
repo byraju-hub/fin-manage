@@ -146,3 +146,18 @@ route('POST', '/settings/rrn-purge', function () {
     }
     json_out(['count' => count($ids), 'applied' => !empty($b['apply']) && $ids]);
 });
+
+/** 다른 프로그램 바로가기(교적·부서 관리)의 폴더 이름 */
+route('POST', '/settings/links', function () {
+    $a = require_admin();
+    $b = body();
+    $new = [];
+    foreach (['cm' => '교적 관리', 'dm' => '부서 관리'] as $k => $label) {
+        $v = in_str($b, $k, 40, false, $label . ' 폴더');
+        if ($v !== '' && !preg_match('/^[A-Za-z0-9_\-]{1,40}$/', $v)) json_fail('invalid', $label . ' 폴더 이름은 영문·숫자·-·_ 만 쓸 수 있어요. (예: cm)', 422);
+        $new[$k] = $v;
+    }
+    q('INSERT INTO ' . t('meta') . " (k, v) VALUES ('app_links', ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [json_encode($new)]);
+    change_log('settings', 'app_links', 'app_links', app_links(), $new);
+    json_out(null);
+});

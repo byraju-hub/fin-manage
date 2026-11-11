@@ -41,6 +41,12 @@ try:
     s, j = adm.call('POST', '/settings/receipt-form', {'lineMode': 'month', 'code': '41'}); check('영수증 줄 방식·구분 코드 저장', s == 200, j)
     s, j = adm.call('POST', '/settings/receipt-form', {'code': 'abc'}); check('구분 코드는 숫자만', s == 422)
 
+    s, j = stf.call('POST', '/settings/links', {'cm': 'cm', 'dm': ''}); check('바로가기 설정은 재정 관리자만', s == 403)
+    s, j = adm.call('POST', '/settings/links', {'cm': '../x', 'dm': ''}); check('폴더 이름에 / . 같은 문자는 거절', s == 422)
+    s, j = adm.call('POST', '/settings/links', {'cm': 'church', 'dm': 'dept'}); check('바로가기 폴더 이름 저장', s == 200, j)
+    c0 = Client(); s, j = c0.call('GET', '/auth/me'); check('로그인 전에도 바로가기 정보를 받음(화면 구성용)', j['data']['links'] == {'cm': 'church', 'dm': 'dept'}, j)
+    adm.call('POST', '/settings/links', {'cm': 'cm', 'dm': ''})
+
     # ---- 직접 지출 증빙 ----
     Y = 2098
     stf.call('POST', '/fiscal-years', {'year': Y, 'start': '2098-01-01', 'end': '2098-12-31'})

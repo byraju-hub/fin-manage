@@ -43,7 +43,7 @@ route('GET', '/settings', function () {
     $a = require_account();
     $s = row('SELECT church, rrn_mode, security, direct_rules, receipt_form FROM ' . t('settings') . ' WHERE id = 1');
     $sec = json_decode((string)$s['security'], true) ?: [];
-    json_out(['church' => json_decode((string)$s['church'], true) ?: new stdClass(), 'rrnMode' => $s['rrn_mode'], 'security' => $sec, 'overBudget' => $sec['over_budget'] ?? 'warn', 'hasSeal' => seal_file() !== null, 'directRules' => direct_rules(), 'receiptForm' => (json_decode((string)$s['receipt_form'], true) ?: []) + ['line_mode' => 'year', 'code' => '41', 'allow_family' => true], 'isAdmin' => is_admin_account($a)]);
+    json_out(['church' => json_decode((string)$s['church'], true) ?: new stdClass(), 'rrnMode' => $s['rrn_mode'], 'security' => $sec, 'overBudget' => $sec['over_budget'] ?? 'warn', 'links' => app_links(), 'hasSeal' => seal_file() !== null, 'directRules' => direct_rules(), 'receiptForm' => (json_decode((string)$s['receipt_form'], true) ?: []) + ['line_mode' => 'year', 'code' => '41', 'allow_family' => true], 'isAdmin' => is_admin_account($a)]);
 });
 
 route('POST', '/settings/direct-rules', function () {

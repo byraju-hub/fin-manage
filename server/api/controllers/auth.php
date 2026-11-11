@@ -11,12 +11,19 @@ function login_throttled(string $loginId): bool
     return $byId >= 5 || $byIp >= 20;
 }
 
+/** 같은 호스팅의 다른 프로그램 바로가기: 이 사이트 폴더의 형제 폴더 이름 (예: /fm 옆의 cm). 빈 값이면 링크를 보이지 않는다. */
+function app_links(): array
+{
+    $v = json_decode((string)val('SELECT v FROM ' . t('meta') . " WHERE k = 'app_links'"), true);
+    return (is_array($v) ? $v : []) + ['cm' => 'cm', 'dm' => ''];
+}
+
 route('GET', '/auth/me', function () {
     check_origin();
     $a = current_account();
     $csrf = csrf_token();
     $church = (string)(json_decode((string)val('SELECT church FROM ' . t('settings') . ' WHERE id = 1'), true)['name'] ?? '');
-    json_out(['church' => $church, 'csrf' => $csrf, 'me' => $a ? account_payload($a) : null]);
+    json_out(['church' => $church, 'csrf' => $csrf, 'links' => app_links(), 'me' => $a ? account_payload($a) : null]);
 });
 
 route('POST', '/auth/login', function () {

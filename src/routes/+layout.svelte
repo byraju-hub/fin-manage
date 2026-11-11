@@ -32,6 +32,13 @@
 	const canReport = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)) || !!me?.access?.canViewDonors);
 	const canLedger = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사'].includes(r)));
 	const canBudget = $derived(!!me?.access?.roles.length || isAdmin || !!me?.access);
+	/** 같은 도메인의 형제 폴더로 가는 주소. 재정이 /fm 이면 교적은 /cm/. (맨 위 폴더에 설치했다면 /cm/) */
+	const sibling = (folder: string) => {
+		const here = hrefTo('/').replace(/\/$/, ''); // '/fm' 또는 ''
+		const parent = here.replace(/\/[^/]*$/, '');
+		return `${parent}/${folder}/`;
+	};
+	const appLinks = $derived([auth.links.cm && { name: '교적 관리', hint: '교인·세대·조직표', href: sibling(auth.links.cm) }, auth.links.dm && { name: '부서 관리', hint: '부서 운영', href: sibling(auth.links.dm) }].filter((x): x is { name: string; hint: string; href: string } => !!x));
 	const isOn = (to: string) => path === to || path.startsWith(to + '/');
 	/** 상단 메뉴: 하는 일별로 묶고, 권한이 없는 항목은 뺀다. 항목이 하나뿐인 묶음은 바로 가기 링크로 보인다. */
 	const groups = $derived.by(() => {
@@ -192,6 +199,15 @@
 					{/each}
 
 					<div class="nav-tools">
+						{#if appLinks.length}
+							<div class="dd">
+								<button type="button" class="tool-btn dd-btn" aria-haspopup="true" style="font-size:.9rem">바로가기
+									<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg></button>
+								<div class="dd-menu" style="right:0;left:auto">
+									{#each appLinks as l (l.href)}<a href={l.href}><b>{l.name} ↗</b><small>{l.hint}</small></a>{/each}
+								</div>
+							</div>
+						{/if}
 						<div class="perm">
 							<button type="button" class="tool-btn" aria-expanded={userOpen} onclick={() => (userOpen = !userOpen)}>
 								{me?.user.name} <small class="role">{roleLabel}</small>
