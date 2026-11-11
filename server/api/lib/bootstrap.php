@@ -16,6 +16,7 @@ require __DIR__ . '/paths.php';
 require __DIR__ . '/http.php';
 fm_security_headers();
 require __DIR__ . '/db.php';
+require_once __DIR__ . '/demo.php';
 require __DIR__ . '/router.php';
 require __DIR__ . '/util.php';
 require __DIR__ . '/cmlink.php';

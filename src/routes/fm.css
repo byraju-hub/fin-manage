@@ -260,3 +260,6 @@ tr.hit td { background: #fff8e8; }
 	main { padding: 0 !important; max-width: none !important; }
 	.card { box-shadow: none !important; border: 0 !important; }
 }
+
+/* 체험 계정 안내 띠 */
+.demo-band { position: relative; z-index: 5; background: #fff4d6; color: #6a4a00; border-bottom: 1px solid #f0d78c; text-align: center; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 1rem; }

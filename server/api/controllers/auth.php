@@ -23,7 +23,7 @@ route('GET', '/auth/me', function () {
     $a = current_account();
     $csrf = csrf_token();
     $church = (string)(json_decode((string)val('SELECT church FROM ' . t('settings') . ' WHERE id = 1'), true)['name'] ?? '');
-    json_out(['church' => $church, 'csrf' => $csrf, 'links' => app_links(), 'me' => $a ? account_payload($a) : null]);
+    json_out(['church' => $church, 'csrf' => $csrf, 'links' => app_links(), 'demoAvailable' => demo_available(), 'me' => $a ? account_payload($a) : null]);
 });
 
 route('POST', '/auth/login', function () {
@@ -40,11 +40,12 @@ route('POST', '/auth/login', function () {
     if (!$u) {
         password_verify($pw, '$2y$10$abcdefghijklmnopqrstuuABCDEFGHIJKLMNOPQRSTUVWXYZ01234'); // 아이디가 있는지 없는지 응답 시간으로 알 수 없게
     }
-    if (!$u || !password_verify($pw, $u['password_hash']) || (int)$u['is_demo'] === 1) {
+    if (!$u || !password_verify($pw, $u['password_hash'])) {
         q('INSERT INTO ' . t('login_attempts') . ' (ip, login_id) VALUES (?, ?)', [client_ip(), $loginId]);
         json_fail('invalid_login', '아이디 또는 비밀번호가 맞지 않습니다.', 401);
     }
-    if (!cm_user_eligible($u) && $u['status'] === '사용') json_fail('not_eligible', '이 계정(소그룹 인도자)은 재정을 사용할 수 없습니다.', 403);
+    $isDemo = (int)$u['is_demo'] === 1 && $u['status'] === '사용';
+    if (!$isDemo && !cm_user_eligible($u) && $u['status'] === '사용') json_fail('not_eligible', '이 계정(소그룹 인도자)은 재정을 사용할 수 없습니다.', 403);
     if ($u['status'] !== '사용') {
         json_fail('inactive', $u['status'] === '정지' ? '정지된 계정입니다. 교적 관리자에게 문의해 주세요.' : '교적 관리에서 아직 승인되지 않은 계정입니다.', 403);
     }
@@ -56,8 +57,8 @@ route('POST', '/auth/login', function () {
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
     q('DELETE FROM ' . t('login_attempts') . ' WHERE login_id = ?', [$loginId]);
     if (random_int(1, 20) === 1) q('DELETE FROM ' . t('login_attempts') . ' WHERE at < (NOW() - INTERVAL 1 DAY)');
-    q('UPDATE ' . t('access') . ' SET last_login_at = NOW() WHERE cm_user_id = ?', [$u['id']]);
-    $a = current_account();
+    if (!$isDemo) q('UPDATE ' . t('access') . ' SET last_login_at = NOW() WHERE cm_user_id = ?', [$u['id']]); // 체험 계정은 실제 표에 아무것도 쓰지 않는다
+    $a = current_account(true);
     audit('로그인', '', $a);
     json_out(['csrf' => $_SESSION['csrf'], 'me' => account_payload($a)]);
 });
@@ -133,7 +134,7 @@ route('POST', '/auth/sso', function () {
     $_SESSION['seen'] = time();
     $_SESSION['csrf'] = bin2hex(random_bytes(32));
     q('UPDATE ' . t('access') . ' SET last_login_at = NOW() WHERE cm_user_id = ?', [$u['id']]);
-    $a = current_account();
+    $a = current_account(true);
     audit('로그인(교적에서 열기)', '', $a);
     json_out(['csrf' => $_SESSION['csrf'], 'me' => account_payload($a)]);
 });

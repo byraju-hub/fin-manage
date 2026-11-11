@@ -70,16 +70,18 @@ function verify_csrf(): void
  * 로그인한 교적 계정과 재정 사용 정보. 교적 계정이 정지되었거나, 비밀번호를 바꿔 세션 번호가 달라졌으면 로그아웃시킨다.
  * @return array{cm: array<string, mixed>, access: ?array<string, mixed>, roles: string[], state: string}|null
  */
-function current_account(): ?array
+function current_account(bool $fresh = false): ?array
 {
     static $a = false;
+    if ($fresh) $a = false; // 로그인 직후처럼 같은 요청 안에서 계정이 바뀐 경우 다시 읽는다
     if ($a !== false) return $a;
     session_boot();
     $id = $_SESSION['cm_uid'] ?? null;
     if (!$id) return $a = null;
     $u = row('SELECT id, login_id, name, person_id, status, grade, is_super, session_epoch, must_change_password, is_demo FROM ' . cmt('users') . ' WHERE id = ?', [$id]);
-    if (!$u || !cm_user_eligible($u)) {
-        unset($_SESSION['cm_uid']);
+    $demo = $u && (int)$u['is_demo'] === 1 && $u['status'] === '사용'; // 교적의 체험 계정 → 재정 체험 모드
+    if (!$u || (!$demo && !cm_user_eligible($u))) {
+        unset($_SESSION['cm_uid'], $_SESSION['demo']);
         return $a = null;
     }
     // 교적에서 비밀번호를 바꾸면 그 전에 로그인한 재정 세션도 끝난다.
@@ -87,6 +89,14 @@ function current_account(): ?array
         $_SESSION = [];
         return $a = null;
     }
+    if ($demo) {
+        fm_demo_on(true); // 이 요청의 모든 질의는 가짜 자료 표를 본다
+        demo_ensure();
+        $_SESSION['demo'] = 1;
+        return $a = demo_account($u);
+    }
+    unset($_SESSION['demo']);
+    fm_demo_on(false);
     $acc = row('SELECT * FROM ' . t('access') . ' WHERE cm_user_id = ?', [$u['id']]);
     $roles = $acc ? array_column(rows('SELECT role FROM ' . t('access_roles') . ' WHERE access_id = ?', [$acc['id']]), 'role') : [];
     return $a = ['cm' => $u, 'access' => $acc, 'roles' => $roles, 'state' => account_state($u, $acc)];
@@ -162,6 +172,7 @@ function account_payload(array $a): array
     $acc = $a['access'];
     return [
         'state' => $a['state'],
+        'demo' => !empty($a['demo']),
         'user' => ['loginId' => $a['cm']['login_id'], 'name' => $a['cm']['name'], 'personId' => $a['cm']['person_id']],
         'access' => $acc ? [
             'status' => $acc['status'],

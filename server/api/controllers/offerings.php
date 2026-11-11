@@ -35,9 +35,13 @@ function ensure_donor_for_person(string $personId): int
 
 /** 헌금자 찾기: 교적 교인(이름·초성·전화 끝자리) + 교인이 아닌 헌금자(이름) */
 route('GET', '/donors/search', function () {
-    require_entry();
+    $a = require_entry();
     $qs = trim((string)($_GET['q'] ?? ''));
     if ($qs === '' || mb_strlen($qs) > 30) json_out(['items' => []]);
+    if (!empty($a['demo'])) { // 체험: 교적 대신 가짜 헌금자에서 찾는다
+        $r = rows('SELECT id, name FROM ' . t('donors') . ' WHERE name LIKE ? ORDER BY name LIMIT 20', ['%' . $qs . '%']);
+        json_out(['items' => array_map(fn($d) => ['key' => 'd:' . $d['id'], 'id' => null, 'name' => $d['name'], 'birthYear' => null, 'gender' => null, 'phoneTail' => '', 'head' => null, 'donorNo' => null, 'nonMember' => false], $r)]);
+    }
     $isCho = (bool)preg_match('/^[ㄱ-ㅎ]+$/u', $qs);
     $digits = preg_replace('/\D/', '', $qs);
     $isPhone = strlen($digits) >= 3 && strlen($digits) === strlen($qs);

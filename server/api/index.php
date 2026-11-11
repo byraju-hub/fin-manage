@@ -46,4 +46,11 @@ if ($schemaNow < $schemaLatest && !in_array($path, ['/system/status', '/auth/me'
     json_fail('update_pending', '새 버전 파일이 올라왔지만 아직 마무리하지 않았습니다. 관리자가 주소창에 ' . fm_site_base() . '/install/ 을 한 번 열어야 쓸 수 있어요.', 503);
 }
 
+// 체험 계정(교적의 데모 계정)으로 로그인한 세션이면: 보기 외의 요청과 민감한 화면을 막는다 (/system/status 는 위에서 이미 응답)
+session_boot();
+if (!empty($_SESSION['cm_uid'])) {
+    $demoNow = current_account();
+    if ($demoNow && !empty($demoNow['demo'])) demo_guard($path);
+}
+
 dispatch($path);

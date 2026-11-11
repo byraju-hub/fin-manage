@@ -5,11 +5,12 @@ export type AccountState = 'active' | 'pending' | 'none' | 'suspended' | 'nolink
 
 export type Me = {
 	state: AccountState;
+	demo?: boolean;
 	user: { loginId: string; name: string; personId: string | null };
 	access: { status: string; isAdmin: boolean; roles: string[]; canViewDonors: boolean; requestedAt: string } | null;
 };
 
-type MePayload = { church: string; csrf: string; me: Me | null; links?: { cm: string; dm: string } };
+type MePayload = { church: string; csrf: string; me: Me | null; links?: { cm: string; dm: string }; demoAvailable?: boolean };
 
 export class ApiError extends Error {
 	constructor(
@@ -26,6 +27,7 @@ class Auth {
 	church = $state('');
 	me = $state<Me | null>(null);
 	links = $state<{ cm: string; dm: string }>({ cm: '', dm: '' });
+	demoAvailable = $state(false);
 	netError = $state('');
 	notInstalled = $state(false);
 	private csrf = '';
@@ -63,6 +65,7 @@ class Auth {
 		this.csrf = p.csrf;
 		this.me = p.me;
 		if (p.links) this.links = p.links;
+		this.demoAvailable = !!p.demoAvailable;
 	}
 
 	async init() {

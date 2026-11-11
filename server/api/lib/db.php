@@ -24,6 +24,7 @@ function db(): PDO
 /** 재정 표 이름. t('access') → `fm_access` */
 function t(string $name): string
 {
+    if (fm_demo_on()) return '`' . fm_demo_prefix() . $name . '`'; // 체험 모드: 가짜 자료 표
     return '`' . (fm_config()['prefix'] ?? 'fm_') . $name . '`';
 }
 

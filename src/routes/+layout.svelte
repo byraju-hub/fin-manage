@@ -27,6 +27,7 @@
 	const active = $derived(me?.state === 'active');
 	const path = $derived(stripBase(page.url.pathname));
 	const isAdmin = $derived(!!me?.access?.isAdmin);
+	const demo = $derived(!!me?.demo);
 	const isStaff = $derived(isAdmin || !!me?.access?.roles.includes('재정 담당'));
 	const canOffer = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '계수 위원', '재정위원장', '담임목사', '감사', '열람'].includes(r)));
 	const canReport = $derived(!!me?.access?.roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)) || !!me?.access?.canViewDonors);
@@ -55,7 +56,7 @@
 		add('설정', [
 			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
 			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
-			isStaff && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
+			isStaff && !demo && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
 			isAdmin && { to: '/admin/users', label: '재정 사용 승인', hint: '신청 승인·역할·열람 지정' },
 			isAdmin && { to: '/admin/church', label: '교회 정보·영수증·보안', hint: '고유번호·직인·서식·주민번호 방식' },
 			isAdmin && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' },
@@ -80,7 +81,7 @@
 			rcBusy = false;
 		}
 	}
-	const roleLabel = $derived(me?.access?.isAdmin ? '재정 관리자' : (me?.access?.roles[0] ?? ''));
+	const roleLabel = $derived(demo ? '체험' : me?.access?.isAdmin ? '재정 관리자' : (me?.access?.roles[0] ?? ''));
 
 	onMount(() => {
 		auth.init().then(async () => {
@@ -172,6 +173,9 @@
 <svelte:window bind:scrollY />
 
 <div class="site">
+	{#if demo}
+		<div class="demo-band" role="status">체험 계정으로 보고 있어요. 모든 화면을 볼 수 있지만 저장하거나 바꿀 수는 없어요.</div>
+	{/if}
 	<header class="site-header" style:--hb-p={hbP}>
 		<div class="bar">
 			<a class="brand" href={hrefTo('/')}>
@@ -254,7 +258,8 @@
 					{#if msg}<p style="color:#a83c10;font-size:.88rem;margin:.5rem 0">{msg}</p>{/if}
 					<button type="submit" style="width:100%;margin-top:.5rem" disabled={busy}>로그인</button>
 				</form>
-				<p class="muted fs-s" style="margin-top:1rem">교적 관리와 <b>같은 아이디·비밀번호</b>로 로그인합니다.<br />재정 사용을 승인받은 분만 들어갈 수 있고,<br />개인별 헌금 열람과 결재는 모두 기록에 남습니다.</p>
+				{#if auth.demoAvailable}<p class="fs-s" style="margin:.9rem 0 0;padding:.55rem .8rem;border-radius:10px;background:var(--primary-50)"><b>체험해 보기</b> · 아이디 <b>demo</b> / 비밀번호 <b>1234</b> <span class="muted">(보기만 할 수 있어요)</span></p>{/if}
+					<p class="muted fs-s" style="margin-top:1rem">교적 관리와 <b>같은 아이디·비밀번호</b>로 로그인합니다.<br />재정 사용을 승인받은 분만 들어갈 수 있고,<br />개인별 헌금 열람과 결재는 모두 기록에 남습니다.</p>
 			</div>
 		{:else if me.state === 'must_change'}
 			<div class="card lock">

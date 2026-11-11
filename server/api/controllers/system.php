@@ -78,6 +78,10 @@ route('GET', '/dashboard', function () {
     $a = require_account();
     $cm = cm_status();
     $church = fm_cm_church(db(), fm_config()['cm_prefix'] ?? 'cm_');
+    if (!empty($a['demo'])) { // 체험: 실제 교적 정보(교인 수·교회 이름)를 내보내지 않는다
+        $cm = ['ok' => true, 'reason' => '', 'message' => '', 'schema' => 0, 'people' => (int)val('SELECT COUNT(*) FROM ' . t('donors')), 'churchName' => '체험교회'];
+        $church = ['name' => '체험교회'];
+    }
     json_out([
         'cm' => ['ok' => $cm['ok'], 'reason' => $cm['reason'], 'message' => $cm['message'], 'schema' => $cm['schema'], 'people' => $cm['people'], 'churchName' => (string)($church['name'] ?? '')],
         'fm' => ['version' => FM_VERSION, 'schema' => current_schema_version(db(), fm_config()['prefix'])],
