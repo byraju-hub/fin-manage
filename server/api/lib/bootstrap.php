@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // fin-manage API 공통 시작 파일. 모든 요청이 api/index.php 를 거쳐 여기로 온다.
 
-const FM_VERSION = '0.1.0';
+const FM_VERSION = '0.2.0';
 define('FM_API_DIR', dirname(__DIR__));
 define('FM_ROOT', dirname(FM_API_DIR));     // 사이트 폴더 (예: /fm)
 define('FM_DATA', FM_ROOT . '/data');       // 설정·업로드·로그. 웹에서 직접 열리지 않는다.
