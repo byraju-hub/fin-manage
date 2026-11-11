@@ -25,9 +25,7 @@
 					await auth.api('POST', '/admin/sample/' + kind, {});
 				} catch (e) {
 					// 샘플 뒤에 직접 넣은 자료가 있으면, 한 번 더 분명히 물은 뒤에만 지운다
-					if (e instanceof Error && (e as { code?: string }).code === 'changed' && confirm(e.message + '
-
-그래도 모두 지울까요?')) await auth.api('POST', '/admin/sample/' + kind, { force: true });
+					if (e instanceof Error && (e as { code?: string }).code === 'changed' && confirm(e.message + '\n\n그래도 모두 지울까요?')) await auth.api('POST', '/admin/sample/' + kind, { force: true });
 					else throw e;
 				}
 			});
