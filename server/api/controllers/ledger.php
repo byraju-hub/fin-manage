@@ -42,7 +42,8 @@ function direct_rules(): array
 route('GET', '/settings', function () {
     $a = require_account();
     $s = row('SELECT church, rrn_mode, security, direct_rules, receipt_form FROM ' . t('settings') . ' WHERE id = 1');
-    json_out(['church' => json_decode((string)$s['church'], true) ?: new stdClass(), 'rrnMode' => $s['rrn_mode'], 'security' => json_decode((string)$s['security'], true), 'directRules' => direct_rules(), 'receiptForm' => json_decode((string)$s['receipt_form'], true), 'isAdmin' => is_admin_account($a)]);
+    $sec = json_decode((string)$s['security'], true) ?: [];
+    json_out(['church' => json_decode((string)$s['church'], true) ?: new stdClass(), 'rrnMode' => $s['rrn_mode'], 'security' => $sec, 'overBudget' => $sec['over_budget'] ?? 'warn', 'hasSeal' => seal_file() !== null, 'directRules' => direct_rules(), 'receiptForm' => (json_decode((string)$s['receipt_form'], true) ?: []) + ['line_mode' => 'year', 'code' => '41', 'allow_family' => true], 'isAdmin' => is_admin_account($a)]);
 });
 
 route('POST', '/settings/direct-rules', function () {
@@ -76,10 +77,12 @@ route('GET', '/ledger', function () {
     $r = rows('SELECT t.*, w.name AS wname, w2.name AS w2name, ia.name AS aname, u.name AS uname, bi.name AS iname FROM ' . t('transactions') . ' t JOIN ' . t('wallets') . ' w ON w.id = t.wallet_id LEFT JOIN ' . t('wallets') . ' w2 ON w2.id = t.to_wallet_id
               LEFT JOIN ' . t('income_accounts') . ' ia ON ia.id = t.income_account_id LEFT JOIN ' . t('units') . ' u ON u.id = t.unit_id LEFT JOIN ' . t('budget_items') . ' bi ON bi.id = t.budget_item_id
               WHERE ' . implode(' AND ', $w) . ' ORDER BY t.tx_date DESC, t.id DESC LIMIT ' . $limit, $p);
+    $proofs = [];
+    if ($r) foreach (rows('SELECT id, transaction_id, mime FROM ' . t('transaction_files') . ' WHERE transaction_id IN (' . marks(array_column($r, 'id')) . ')', array_column($r, 'id')) as $f) $proofs[(int)$f['transaction_id']][] = ['id' => (int)$f['id'], 'mime' => $f['mime']];
     json_out(['total' => $total, 'limit' => $limit, 'items' => array_map(fn($x) => [
         'id' => (int)$x['id'], 'date' => $x['tx_date'], 'kind' => $x['kind'], 'wallet' => $x['wname'], 'toWallet' => $x['w2name'], 'account' => $x['aname'], 'unit' => $x['uname'], 'item' => $x['iname'],
         'amount' => (int)$x['amount'], 'summary' => $x['summary'], 'vendor' => $x['vendor'], 'source' => $x['source'], 'isDirect' => (int)$x['is_direct'] === 1, 'checked' => $x['direct_checked_at'] !== null,
-        'void' => $x['void_at'] !== null, 'voidReason' => $x['void_reason'],
+        'void' => $x['void_at'] !== null, 'voidReason' => $x['void_reason'], 'proofNote' => $x['proof_note'], 'proofs' => $proofs[(int)$x['id']] ?? [],
     ], $r)]);
 });
 
@@ -127,10 +130,25 @@ route('POST', '/transactions', function () {
         $unit = (int)$it['unit_id'];
         $isDirect = 1;
     }
+    // 직접 지출은 설정에 따라 증빙(파일) 또는 증빙 없는 사유가 필요하다
+    $proof = null;
+    $proofNote = in_str($b, 'noProofReason', 255);
+    if ($isDirect) {
+        if (is_array($b['proof'] ?? null) && !empty($b['proof']['data'])) $proof = proof_decode((string)$b['proof']['data']);
+        if (!$proof && $proofNote === '' && !empty(direct_rules()['proof_required'])) json_fail('proof', '직접 지출은 증빙(영수증 사진)을 올리거나 증빙이 없는 사유를 적어야 합니다.', 422);
+    }
     $id = insert_id(
-        'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, to_wallet_id, income_account_id, unit_id, budget_item_id, amount, summary, vendor, source, is_direct, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [$year, $date, $kind, $w['fund_id'], $wid, $to, $acct, $unit, $item, $amount, $summary, $vendor ?: null, '직접', $isDirect, $a['access']['id']]
+        'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, to_wallet_id, income_account_id, unit_id, budget_item_id, amount, summary, vendor, proof_note, source, is_direct, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [$year, $date, $kind, $w['fund_id'], $wid, $to, $acct, $unit, $item, $amount, $summary, $vendor ?: null, $proofNote ?: null, '직접', $isDirect, $a['access']['id']]
     );
+    if ($proof) {
+        [$bin, $mime, $ext] = $proof;
+        $dir = FM_DATA . '/proofs/' . $id;
+        if (!is_dir($dir)) @mkdir($dir, 0700, true);
+        $name = bin2hex(random_bytes(12)) . '.' . $ext;
+        if (@file_put_contents($dir . '/' . $name, $bin) === false) json_fail('server', '증빙 파일을 저장하지 못했습니다.', 500);
+        q('INSERT INTO ' . t('transaction_files') . ' (transaction_id, path, mime, size, orig_name, uploaded_by) VALUES (?,?,?,?,?,?)', [$id, $id . '/' . $name, $mime, strlen($bin), in_str($b['proof'], 'name', 100) ?: null, $a['access']['id']]);
+    }
     change_log('transaction', $id, 'create', null, "$kind $amount $summary");
     json_out(['id' => $id]);
 });
@@ -174,4 +192,17 @@ route('GET', '/reports/monthly', function () {
     json_out(['period' => sprintf('%04d년 %d월', $year, $month), 'carryIn' => $carryIn, 'carryOut' => array_sum(array_column($wallets, 'balance')),
         'income' => $in, 'expense' => $ex, 'incomeTotal' => array_sum(array_column($in, 'month')), 'expenseTotal' => array_sum(array_column($ex, 'month')),
         'wallets' => array_map(fn($w) => ['name' => $w['name'], 'balance' => $w['balance']], array_filter($wallets, fn($w) => $w['active'] || $w['balance'] !== 0))]);
+});
+
+route('GET', '/transaction-files/{id}', function (int $fid) {
+    require_ledger_view();
+    $f = row('SELECT * FROM ' . t('transaction_files') . ' WHERE id = ?', [$fid]);
+    $path = $f ? FM_DATA . '/proofs/' . $f['path'] : '';
+    if (!$f || !is_file($path)) json_fail('not_found', '파일을 찾을 수 없습니다.', 404);
+    header('Content-Type: ' . $f['mime']);
+    header('Content-Length: ' . filesize($path));
+    header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, max-age=300');
+    readfile($path);
+    exit;
 });

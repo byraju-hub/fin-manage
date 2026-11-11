@@ -159,7 +159,7 @@ route('GET', '/receipts/preview', function () {
 
 function receipt_form(): array
 {
-    return (json_decode((string)val('SELECT receipt_form FROM ' . t('settings') . ' WHERE id = 1'), true) ?: []) + ['line_mode' => 'year', 'allow_family' => true];
+    return (json_decode((string)val('SELECT receipt_form FROM ' . t('settings') . ' WHERE id = 1'), true) ?: []) + ['line_mode' => 'year', 'allow_family' => true, 'code' => '41'];
 }
 
 function next_receipt_no(int $year): string
@@ -198,7 +198,7 @@ route('POST', '/receipts/issue', function () {
             $snap = [
                 'taxYear' => $year, 'name' => $d['name'], 'address' => $info['address'], 'rrnMasked' => $keep ? rrn_mask(rrn_decrypt((string)$d['rrn_enc'])) : ($info['birth6'] !== '' ? $info['birth6'] . '-*******' : ''), 'rrnMode' => $keep ? 'keep' : 'none',
                 'church' => ['name' => $church['name'] ?? '', 'bizNo' => $church['bizNo'] ?? '', 'address' => $church['address'] ?? '', 'rep' => $church['pastorName'] ?? ''],
-                'lines' => $lines, 'total' => $g['total'], 'included' => array_values($g['names']),
+                'lines' => $lines, 'total' => $g['total'], 'included' => array_values($g['names']), 'code' => (string)($form['code'] ?? '41'),
             ];
             $old = row('SELECT * FROM ' . t('receipts') . ' WHERE donor_id = ? AND tax_year = ? AND voided_at IS NULL FOR UPDATE', [$tid, $year]);
             if ($old && (int)$old['total'] === $g['total']) {
@@ -237,7 +237,7 @@ route('GET', '/receipts/{id}', function (int $id) {
         audit('주민번호 사용', '영수증 ' . $r['doc_no'], $a);
     }
     audit('영수증 열람', $r['doc_no'], $a);
-    json_out(['id' => (int)$r['id'], 'docNo' => $r['doc_no'], 'issuedAt' => substr((string)$r['issued_at'], 0, 10), 'void' => $r['voided_at'] !== null, 'snapshot' => $snap, 'rrnFull' => $full]);
+    json_out(['id' => (int)$r['id'], 'docNo' => $r['doc_no'], 'issuedAt' => substr((string)$r['issued_at'], 0, 10), 'void' => $r['voided_at'] !== null, 'snapshot' => $snap, 'rrnFull' => $full, 'hasSeal' => seal_file() !== null]);
 });
 
 /** 세무서 제출용 발급 명세 (CSV, 엑셀에서 열림). 주민번호는 마스킹한 값만 낸다. */

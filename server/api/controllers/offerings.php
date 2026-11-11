@@ -195,7 +195,9 @@ route('POST', '/offering-lines/{id}', function (int $lid) {
     [$l, $batch] = line_for_edit($lid, $a);
     [$acct, $donor, $amount, $method, $unit, $purpose, $memo, $hide] = line_fields(body(), $batch);
     q('UPDATE ' . t('offerings') . ' SET income_account_id=?, donor_id=?, amount=?, method=?, unit_id=?, purpose=?, memo=?, hide_in_bulletin=? WHERE id=?', [$acct, $donor, $amount, $method, $unit, $purpose, $memo, $hide, $lid]);
-    if ((int)$l['amount'] !== $amount) change_log('offering', $lid, 'amount', $l['amount'], $amount);
+    foreach (['income_account_id' => $acct, 'donor_id' => $donor, 'amount' => $amount, 'method' => $method, 'unit_id' => $unit, 'purpose' => $purpose, 'hide_in_bulletin' => $hide] as $col => $new) {
+        if ((string)$l[$col] !== (string)$new) change_log('offering', $lid, $col, $l[$col], $new);
+    }
     json_out(null);
 });
 
@@ -203,7 +205,7 @@ route('POST', '/offering-lines/{id}/delete', function (int $lid) {
     $a = require_entry();
     [$l] = line_for_edit($lid, $a);
     q('DELETE FROM ' . t('offerings') . ' WHERE id = ?', [$lid]);
-    change_log('offering', $lid, 'delete', $l['amount'], null, '입력 중 삭제');
+    change_log('offering', $lid, 'delete', json_encode(['계정' => $l['income_account_id'], '헌금자' => $l['donor_id'], '금액' => $l['amount'], '방법' => $l['method']], JSON_UNESCAPED_UNICODE), null, '입력 중 삭제');
     json_out(null);
 });
 

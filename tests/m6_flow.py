@@ -19,7 +19,7 @@ s, j = stf.call('POST', '/units', {'year': Y, 'kind': '기타', 'name': '시험�
 s, j = stf.call('POST', '/budget-items', {'unitId': ue, 'name': '시험공과금', 'amount': 500000}); bi = j['data']['id']
 adm.call('POST', f'/budget-items/{bi}/direct', {'directOk': True})
 s, j = stf.call('POST', '/transactions', {'kind': '수입', 'date': '2098-01-10', 'walletId': w1, 'incomeAccountId': 21, 'amount': 300000, 'summary': '시험 보조금'}); check('1월 수입', s == 200, j)
-s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': '2098-01-20', 'walletId': w1, 'budgetItemId': bi, 'amount': 100000, 'summary': '시험 전기료'}); check('1월 직접 지출', s == 200, j); tdir = j['data']['id']
+s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': '2098-01-20', 'walletId': w1, 'budgetItemId': bi, 'amount': 100000, 'summary': '시험 전기료', 'noProofReason': '시험'}); check('1월 직접 지출', s == 200, j); tdir = j['data']['id']
 BOOK = 1000000 + 300000 - 100000
 
 s, j = vw.call('GET', f'/closings?year={Y}'); check('열람 역할은 마감 현황 못 봄', s == 403)

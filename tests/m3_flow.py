@@ -38,9 +38,9 @@ s, j = stf.call('POST', f'/budget-items/{i1}', {'amount': 1}); check('확정 뒤
 D = '2098-03-10'
 s, j = stf.call('POST', '/transactions', {'kind': '수입', 'date': D, 'walletId': w1, 'incomeAccountId': 21, 'amount': 200000, 'summary': '시험 교회보조금'}); check('기타 수입 등록', s == 200, j); t_in = j['data']['id']
 s, j = stf.call('POST', '/transactions', {'kind': '수입', 'date': D, 'walletId': w1, 'incomeAccountId': 2, 'amount': 1, 'summary': '시험'}); check('헌금 항목은 직접 수입 불가', s == 422)
-s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i2, 'amount': 1000, 'summary': '시험 지출'}); check('직접 지출 미허용 항목은 거절', s == 403 and code(j) == 'not_direct', j)
-s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 150000, 'summary': '시험 지출'}); check('건당 한도 초과 거절', s == 403 and code(j) == 'over_limit', j)
-s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 80000, 'summary': '시험 다과'}); check('한도 안의 직접 지출', s == 200, j); t_ex = j['data']['id']
+s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i2, 'amount': 1000, 'summary': '시험 지출', 'noProofReason': '시험'}); check('직접 지출 미허용 항목은 거절', s == 403 and code(j) == 'not_direct', j)
+s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 150000, 'summary': '시험 지출', 'noProofReason': '시험'}); check('건당 한도 초과 거절', s == 403 and code(j) == 'over_limit', j)
+s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 80000, 'summary': '시험 다과', 'noProofReason': '시험'}); check('한도 안의 직접 지출', s == 200, j); t_ex = j['data']['id']
 s, j = chair.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 1000, 'summary': '시험'}); check('설정에 없는 역할(재정위원장)은 직접 지출 불가', s == 403)
 s, j = adm.call('POST', '/settings/direct-rules', {'roles': ['재정 담당'], 'monthCap': 100000, 'proofRequired': True, 'closeConfirm': True}); check('월 한도 설정', s == 200, j)
 s, j = stf.call('POST', '/transactions', {'kind': '지출', 'date': D, 'walletId': w1, 'budgetItemId': i1, 'amount': 30000, 'summary': '시험'}); check('월 직접 지출 한도 초과 거절', s == 403 and code(j) == 'over_cap', j)

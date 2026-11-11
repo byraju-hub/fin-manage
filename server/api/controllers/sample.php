@@ -77,9 +77,11 @@ function sample_clear(array $info): void
     foreach ($info['wallets'] ?? [] as $w) q('DELETE FROM ' . t('wallets') . ' WHERE id = ?', [(int)$w]);
     foreach ($info['years'] ?? [] as $y) q('DELETE FROM ' . t('fiscal_years') . ' WHERE year = ?', [(int)$y]);
     q("DELETE FROM " . t('meta') . " WHERE k = 'sample_info' OR k LIKE 'voucher\\_seq\\_%' OR k LIKE 'receipt\\_seq\\_%'");
-    $dir = FM_DATA . '/vouchers';
-    foreach (glob($dir . '/*/*') ?: [] as $f) @unlink($f);
-    foreach (glob($dir . '/*', GLOB_ONLYDIR) ?: [] as $d) @rmdir($d);
+    foreach (['vouchers', 'proofs'] as $sub) {
+        $dir = FM_DATA . '/' . $sub;
+        foreach (glob($dir . '/*/*') ?: [] as $f) @unlink($f);
+        foreach (glob($dir . '/*', GLOB_ONLYDIR) ?: [] as $d) @rmdir($d);
+    }
 }
 
 function sample_year(int $year, string $status, array &$created): void

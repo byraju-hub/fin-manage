@@ -135,6 +135,10 @@ function build_steps(array $v, array $items): array
         elseif ($st['role'] === '담임목사' && in_array('담임목사', $dRoles, true)) $st['role'] = '재정위원장';
     }
     unset($st);
+    // 같은 역할이 '결재'로도 있으면 '확인' 중복은 뺀다 (대체·추가 단계가 겹칠 때)
+    $hard = [];
+    foreach ($steps as $st) if ($st['mode'] === '결재') $hard[$st['role']] = true;
+    $steps = array_values(array_filter($steps, fn($st) => !($st['mode'] === '확인' && isset($hard[$st['role']]))));
     $out = [];
     foreach ($steps as $s) {
         $role = $s['role'];
@@ -400,6 +404,16 @@ route('POST', '/vouchers/{id}', function (int $id) {
 });
 
 // ---------- 증빙 파일 ----------
+/** base64 증빙을 읽어 [내용, mime, 확장자] 로. 사진(JPG·PNG·WEBP)과 PDF만, 크기 제한 안에서. */
+function proof_decode(string $b64): array
+{
+    $bin = base64_decode($b64, true);
+    if ($bin === false || $bin === '') json_fail('invalid', '파일 내용을 읽지 못했습니다.', 422);
+    if (strlen($bin) > FM_FILE_MAX) json_fail('too_big', '파일이 너무 큽니다. (' . (int)(FM_FILE_MAX / 1000) . 'KB 이하) 사진은 자동으로 줄여서 올라갑니다.', 413);
+    $mime = str_starts_with($bin, "\xFF\xD8\xFF") ? 'image/jpeg' : (str_starts_with($bin, "\x89PNG\r\n\x1a\n") ? 'image/png' : (str_starts_with($bin, '%PDF-') ? 'application/pdf' : (str_starts_with($bin, 'RIFF') && substr($bin, 8, 4) === 'WEBP' ? 'image/webp' : '')));
+    if ($mime === '') json_fail('invalid', '사진(JPG·PNG·WEBP)이나 PDF만 올릴 수 있습니다.', 422);
+    return [$bin, $mime, ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf'][$mime]];
+}
 route('POST', '/vouchers/{id}/files', function (int $id) {
     $a = require_account();
     $v = voucher_row($id);
@@ -474,6 +488,8 @@ route('POST', '/vouchers/{id}/submit', function (int $id) {
         if (in_array($v['pay_method'], ['계좌이체', '먼저 쓰고 청구'], true) && (!$v['pay_bank'] || !$v['pay_account'] || !$v['pay_holder'])) json_fail('invalid', '받을 분의 은행·계좌번호·예금주를 적어 주세요.', 422);
         $files = (int)val('SELECT COUNT(*) FROM ' . t('voucher_files') . ' WHERE voucher_id = ?', [$id]);
         if (!$files && !$v['no_proof_reason']) json_fail('proof', '증빙(영수증·견적서)을 올리거나, 증빙이 없는 사유를 적어 주세요.', 422);
+        $sec = json_decode((string)val('SELECT security FROM ' . t('settings') . ' WHERE id = 1'), true) ?: [];
+        if (($sec['over_budget'] ?? 'warn') === 'block' && over_budget($v, $items)) json_fail('over_budget', '예산 항목의 남은 금액보다 많아 상신할 수 없습니다. 금액을 줄이거나 예산 변경(전용·추경)을 먼저 해 주세요.', 409);
         $b = build_steps($v, $items);
         if ($b['error']) json_fail('steps', $b['error'], 409);
         $round = $v['status'] === '작성 중' ? (int)$v['round'] : (int)$v['round'] + 1;
