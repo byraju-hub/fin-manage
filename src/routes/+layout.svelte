@@ -249,6 +249,8 @@
 	<main>
 		{#if !auth.ready}
 			<div class="card lock"><p class="muted">불러오는 중…</p></div>
+		{:else if path === '/privacy'}
+			{@render children()}
 		{:else if auth.notInstalled}
 			<div class="card lock">
 				<h2>아직 설치되지 않았습니다</h2>
@@ -351,6 +353,7 @@
 			<div class="foot-copy">
 				<span>ⓒ {new Date().getFullYear()} {auth.church}. All Rights Reserved.</span>
 				<small>프로그램 <a href="https://github.com/byraju-hub/fin-manage" target="_blank" rel="noopener">fin-manage</a> · GNU AGPL-3.0</small>
+				<small><a href={hrefTo('/privacy')}>개인정보 처리 방침</a></small>
 			</div>
 		</div>
 	</footer>
