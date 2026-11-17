@@ -5,13 +5,13 @@
 	import { won, localDate, errText } from '#lib/fmt.ts';
 	import { hrefTo } from '#lib/paths.ts';
 
-	type Item = { id: number; name: string; remain: number; directOk: boolean };
+	type Item = { id: number; name: string; remain: number; directOk: boolean; categoryId: number | null };
 	type BU = { id: number; kind: string; name: string; items: Item[] };
 	type Step = { round: number; no: number; role: string; name: string; mode: string; status: string; actedAt: string | null; delegate: boolean; comment: string | null; hash: string | null };
 	type V = {
 		id: number; docNo: string | null; year: number; unitId: number; unit: string; drafter: string; title: string; reason: string | null; total: number; payMethod: string; payBank: string | null; payAccount: string | null; payHolder: string | null;
 		desiredDate: string | null; noProofReason: string | null; status: string; rev: number; round: number; submittedAt: string | null; approvedAt: string | null; paidAt: string | null;
-		items: { id: number; budgetItemId: number; item: string; summary: string; amount: number }[]; files: { id: number; mime: string; size: number; name: string | null }[]; steps: Step[];
+		items: { id: number; budgetItemId: number; item: string; summary: string; amount: number; eventId: number | null }[]; files: { id: number; mime: string; size: number; name: string | null }[]; steps: Step[];
 		can: { edit: boolean; submit: boolean; recall: boolean; cancel: boolean; approve: boolean; confirm: boolean; pay: boolean };
 		preview?: { error: string | null; rule: string | null; steps: { role: string; name: string; mode: string; skip: boolean }[] }; overBudget?: boolean;
 	};
@@ -32,12 +32,48 @@
 	let busy = $state(false);
 	let churchName = $derived(auth.church);
 
-	type Form = { unitId: number; title: string; reason: string; payMethod: string; payBank: string; payAccount: string; payHolder: string; desiredDate: string; noProofReason: string; items: { budgetItemId: number; summary: string; amount: string }[] };
+	type Form = { unitId: number; title: string; reason: string; payMethod: string; payBank: string; payAccount: string; payHolder: string; desiredDate: string; noProofReason: string; items: { budgetItemId: number; summary: string; amount: string; eventId: number }[] };
 	let form = $state<Form | null>(null);
 	let pw = $state('');
 	let comment = $state('');
 	let pay = $state({ walletId: 0, paidOn: localDate() });
 
+	let events = $state<{ id: number; name: string; status: string }[]>([]);
+	// ---- 영수증 사진으로 자동 입력 (관리자가 켠 경우에만 보임)
+	type Ocr = { date: string | null; vendor: string | null; bizNo: string | null; total: number | null; payMethod: string | null; cardLast4: string | null; summary: string | null; categoryId: number | null; warnings: string[] };
+	let ocr = $state<Ocr | null>(null);
+	let ocrBusy = $state(false);
+	let ocrErr = $state('');
+	async function readReceipt(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const f = input.files?.[0];
+		input.value = '';
+		if (!f) return;
+		ocrBusy = true;
+		ocrErr = '';
+		ocr = null;
+		try {
+			const s = await shrink(f);
+			ocr = await auth.api<Ocr>('POST', '/receipts-ocr', { data: s.data });
+		} catch (er) {
+			ocrErr = errText(er);
+		} finally {
+			ocrBusy = false;
+		}
+	}
+	/** 읽은 값을 지출 내역 줄에 채운다(마지막 줄이 비어 있으면 그 줄, 아니면 새 줄). 사람이 확인하고 고친다. */
+	function applyOcr() {
+		if (!form || !ocr) return;
+		const last = form.items[form.items.length - 1];
+		const row = last && !last.summary && !last.amount ? last : (form.items.push({ budgetItemId: 0, summary: '', amount: '', eventId: 0 }), form.items[form.items.length - 1]);
+		row.summary = [ocr.vendor, ocr.summary, ocr.date].filter(Boolean).join(' ').slice(0, 255);
+		if (ocr.total) row.amount = String(ocr.total);
+		const hit = ocr.categoryId ? unitItems(form.unitId).find((b) => b.categoryId === ocr!.categoryId) : null;
+		if (hit) row.budgetItemId = hit.id;
+		if (ocr.payMethod && ['법인카드', '현금'].includes(ocr.payMethod)) form.payMethod = ocr.payMethod;
+		if (!form.title && ocr.vendor) form.title = ocr.vendor + ' ' + (ocr.summary ?? '');
+		ocr = null;
+	}
 	const unitItems = (id: number) => units.find((u) => u.id === id)?.items ?? [];
 	const formTotal = $derived((form?.items ?? []).reduce((s, i) => s + (Number(String(i.amount).replace(/,/g, '')) || 0), 0));
 
@@ -57,6 +93,7 @@
 		try {
 			list = (await auth.api<{ items: Row[] }>('GET', `/vouchers?year=${year}${status ? '&status=' + encodeURIComponent(status) : ''}`)).items;
 			units = (await auth.api<{ units: BU[] }>('GET', '/budget?year=' + year)).units.filter((u) => u.kind !== '위원회' || u.items.length);
+			events = (await auth.api<{ items: { id: number; name: string; status: string }[] }>('GET', '/events?year=' + year)).items.filter((e) => e.status === '진행');
 			err = '';
 		} catch (e) {
 			err = errText(e);
@@ -84,13 +121,13 @@
 	function startNew() {
 		sel = null;
 		v = null;
-		form = { unitId: units.find((u) => u.kind !== '기타' || true)?.id ?? 0, title: '', reason: '', payMethod: '계좌이체', payBank: '', payAccount: '', payHolder: '', desiredDate: '', noProofReason: '', items: [{ budgetItemId: 0, summary: '', amount: '' }] };
+		form = { unitId: units.find((u) => u.kind !== '기타' || true)?.id ?? 0, title: '', reason: '', payMethod: '계좌이체', payBank: '', payAccount: '', payHolder: '', desiredDate: '', noProofReason: '', items: [{ budgetItemId: 0, summary: '', amount: '', eventId: 0 }] };
 	}
 	function startEdit() {
 		if (!v) return;
-		form = { unitId: v.unitId, title: v.title, reason: v.reason ?? '', payMethod: v.payMethod, payBank: v.payBank ?? '', payAccount: v.payAccount ?? '', payHolder: v.payHolder ?? '', desiredDate: v.desiredDate ?? '', noProofReason: v.noProofReason ?? '', items: v.items.map((i) => ({ budgetItemId: i.budgetItemId, summary: i.summary, amount: String(i.amount) })) };
+		form = { unitId: v.unitId, title: v.title, reason: v.reason ?? '', payMethod: v.payMethod, payBank: v.payBank ?? '', payAccount: v.payAccount ?? '', payHolder: v.payHolder ?? '', desiredDate: v.desiredDate ?? '', noProofReason: v.noProofReason ?? '', items: v.items.map((i) => ({ budgetItemId: i.budgetItemId, summary: i.summary, amount: String(i.amount), eventId: i.eventId ?? 0 })) };
 	}
-	const payload = () => ({ ...form, items: form!.items.map((i) => ({ budgetItemId: i.budgetItemId, summary: i.summary, amount: Number(String(i.amount).replace(/,/g, '')) })) });
+	const payload = () => ({ ...form, items: form!.items.map((i) => ({ budgetItemId: i.budgetItemId, summary: i.summary, amount: Number(String(i.amount).replace(/,/g, '')), eventId: i.eventId || undefined })) });
 
 	async function act(fn: () => Promise<unknown>, ok = '', reopen: number | null = null) {
 		busy = true;
@@ -235,17 +272,34 @@
 					{/if}
 					<input type="date" bind:value={form.desiredDate} aria-label="지급 희망일" />
 				</div>
+				{#if auth.ocrEnabled}
+					<div class="note fs-s" style="margin:.4rem 0">
+						<label style="cursor:pointer"><b>📷 영수증 사진으로 자동 입력</b> <span class="muted">(사진은 글자를 읽으려고 외부 AI 업체로 전송돼요. 결과는 꼭 확인하세요)</span>
+							<input type="file" accept="image/*" capture="environment" onchange={readReceipt} disabled={ocrBusy} style="display:block;margin-top:.3rem" /></label>
+						{#if ocrBusy}<p class="muted">영수증을 읽는 중…</p>{/if}
+						{#if ocrErr}<p style="color:#a83c10;margin:.3rem 0">{ocrErr}</p>{/if}
+						{#if ocr}
+							<div class="card" style="margin:.4rem 0 0">
+								<b>읽은 내용</b> · 날짜 {ocr.date ?? '?'} · 가맹점 {ocr.vendor ?? '?'} · 금액 <b>{ocr.total ? won(ocr.total) + '원' : '?'}</b>{ocr.payMethod ? ' · ' + ocr.payMethod : ''}{ocr.cardLast4 ? ' · 카드 끝 ' + ocr.cardLast4 : ''}{ocr.bizNo ? ' · 사업자 ' + ocr.bizNo : ''}
+								{#each ocr.warnings as w}<div class="warn fs-s">{w}</div>{/each}
+								<div class="row mt"><button type="button" class="sm" onclick={applyOcr}>지출 내역에 채우기</button><button type="button" class="ghost sm" onclick={() => (ocr = null)}>버리기</button></div>
+								<p class="fs-s muted">금액이 틀릴 수 있어요(구겨진 영수증·열감지 등). 채운 뒤 금액과 예산 항목을 꼭 확인하세요.</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
 				<h3>지출 내역</h3>
 				{#each form.items as it, n}
 					<div class="item-row">
 						<label>예산 항목<select bind:value={it.budgetItemId} required><option value={0} disabled>선택</option>{#each unitItems(form.unitId) as b}<option value={b.id}>{b.name} (남음 {won(b.remain)})</option>{/each}</select></label>
 						<label>적요<input bind:value={it.summary} maxlength="255" required /></label>
 						<label>금액<input bind:value={it.amount} inputmode="numeric" class="amount-in" required /></label>
+						{#if events.length}<label>행사<select bind:value={it.eventId}><option value={0}>행사 아님</option>{#each events as ev}<option value={ev.id}>{ev.name}</option>{/each}</select></label>{/if}
 						<button type="button" class="ghost sm" disabled={form.items.length < 2} onclick={() => form!.items.splice(n, 1)}>삭제</button>
 					</div>
 				{/each}
 				<div class="row" style="justify-content:space-between;flex-wrap:wrap">
-					<button type="button" class="ghost sm" onclick={() => form!.items.push({ budgetItemId: 0, summary: '', amount: '' })}>+ 줄 추가</button>
+					<button type="button" class="ghost sm" onclick={() => form!.items.push({ budgetItemId: 0, summary: '', amount: '', eventId: 0 })}>+ 줄 추가</button>
 					<b>합계 {won(formTotal)}원</b>
 				</div>
 				<div class="row mt" style="justify-content:flex-end"><button type="button" class="ghost" onclick={() => (form = null)}>닫기</button><button type="submit" disabled={busy}>{v ? '저장' : '임시 저장'}</button></div>

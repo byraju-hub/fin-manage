@@ -32,7 +32,7 @@ route('GET', '/auth/me', function () {
         'email' => (string)(($cmc['privacyEmail'] ?? '') ?: ($cmc['email'] ?? '') ?: ($ci['email'] ?? '')),
         'address' => (string)($cmc['address'] ?? ($ci['address'] ?? '')),
     ];
-    json_out(['church' => $church, 'contact' => $contact, 'policyVersion' => FM_POLICY_VERSION, 'csrf' => $csrf, 'links' => app_links(), 'demoAvailable' => demo_available(), 'me' => $a ? account_payload($a) : null]);
+    json_out(['church' => $church, 'contact' => $contact, 'policyVersion' => FM_POLICY_VERSION, 'ocrEnabled' => ocr_enabled(), 'csrf' => $csrf, 'links' => app_links(), 'demoAvailable' => demo_available(), 'me' => $a ? account_payload($a) : null]);
 });
 
 route('POST', '/auth/login', function () {

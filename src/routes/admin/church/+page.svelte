@@ -89,6 +89,22 @@
 	}
 	const delSeal = () => run(() => auth.api('POST', '/settings/seal/delete', {}), '직인을 지웠어요.');
 
+	// 영수증 글자 읽기(외부 AI, 선택 기능)
+	let ocrSt = $state<{ enabled: boolean; hasKey: boolean; model: string } | null>(null);
+	let ocrKey = $state('');
+	let ocrConsent = $state(false);
+	async function loadOcr() {
+		try {
+			ocrSt = await auth.api('GET', '/settings/ocr');
+		} catch {
+			ocrSt = null;
+		}
+	}
+	onMount(loadOcr);
+	const saveOcr = (body: Record<string, unknown>, ok: string) => run(async () => {
+		ocrSt = await auth.api('POST', '/settings/ocr', body);
+		ocrKey = '';
+	}, ok);
 	async function setRrn(mode: 'keep' | 'none') {
 		let confirmWord = '';
 		if (mode === 'none') {
@@ -196,6 +212,23 @@
 		{/if}
 		{#if newKey}
 			<div class="warn fs-s"><b>암호화 열쇠가 새로 만들어졌어요. 지금 한 번만 보여 드립니다.</b> 서버의 설정 파일(<code>data/config.php</code>)에 들어 있으니, 서버를 잃어버려도 번호를 풀 수 있게 이 값을 안전한 곳(금고·비밀번호 관리자)에도 적어 두세요. 백업 파일에는 들어가지 않습니다.<br /><code style="word-break:break-all">{newKey}</code></div>
+		{/if}
+	</div>
+	<div class="card">
+		<div class="card-head"><h2>영수증 글자 읽기 (선택 기능)</h2><span class="sub">지금: {ocrSt?.enabled ? '켜짐' : '꺼짐'}</span></div>
+		<p class="fs-s muted">결의서에서 영수증 사진을 올리면 날짜·가맹점·금액을 읽어 채워 줍니다. 결과는 사람이 꼭 확인해요. <b>켜면 영수증 사진이 글자를 읽기 위해 외부 AI 업체(Anthropic, 미국)로 전송됩니다.</b> 개인정보 처리방침(국외 이전)에 적혀 있으며, 기본은 꺼져 있어요. 사진은 읽은 뒤 서버에 따로 저장하지 않고, 하루 사용자당 60장까지 읽습니다. 쓰려면 업체의 API 열쇠가 필요하고, 열쇠는 서버 data 폴더에만 보관돼요(백업에 들어가지 않음).</p>
+		{#if ocrSt}
+			<div class="row" style="flex-wrap:wrap">
+				<input type="password" bind:value={ocrKey} placeholder={ocrSt.hasKey ? 'API 열쇠가 저장돼 있어요 (바꾸려면 새로 입력)' : 'API 열쇠 (sk-ant-…)'} autocomplete="off" style="max-width:22rem" />
+				<button class="sm" type="button" disabled={busy || !ocrKey.trim()} onclick={() => saveOcr({ apiKey: ocrKey }, '열쇠를 저장했어요.')}>열쇠 저장</button>
+				{#if ocrSt.hasKey}<button class="ghost sm" type="button" disabled={busy} onclick={() => saveOcr({ clearKey: true }, '열쇠를 지우고 껐어요.')}>열쇠 지우기</button>{/if}
+			</div>
+			{#if ocrSt.enabled}
+				<div class="row mt"><button class="ghost sm" type="button" disabled={busy} onclick={() => saveOcr({ enabled: false }, '껐어요.')}>끄기</button></div>
+			{:else}
+				<label class="row fs-s mt"><input type="checkbox" bind:checked={ocrConsent} /> 영수증 사진이 외부 AI 업체(국외)로 전송되는 것을 확인했고, 교회에서 필요한 동의·고지를 마쳤어요.</label>
+				<div class="row mt"><button class="sm" type="button" disabled={busy || !ocrSt.hasKey || !ocrConsent} onclick={() => saveOcr({ enabled: true, consent: true }, '켰어요. 결의서에서 사진으로 자동 입력할 수 있어요.')}>켜기</button></div>
+			{/if}
 		{/if}
 	</div>
 {/if}

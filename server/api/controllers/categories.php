@@ -40,7 +40,7 @@ function seed_default_categories(): int
             $n++;
             $s3 = 1;
             foreach ($moks as $m) {
-                q('INSERT INTO ' . t('expense_categories') . ' (parent_id, name, sort_order) VALUES (?,?,?)', [$hid, $m, $s3++]);
+                q('INSERT INTO ' . t('expense_categories') . ' (parent_id, name, sort_order, needs_memo) VALUES (?,?,?,?)', [$hid, $m, $s3++, $m === '기타' ? 1 : 0]);
                 $n++;
             }
         }
@@ -51,7 +51,7 @@ function seed_default_categories(): int
 /** 전체 카테고리: id, parent, name, level(1~3), 활성, 사용 여부 */
 function categories_all(): array
 {
-    $r = rows('SELECT c.id, c.parent_id, c.name, c.sort_order, c.is_active,
+    $r = rows('SELECT c.id, c.parent_id, c.name, c.sort_order, c.is_active, c.needs_memo,
                  (SELECT COUNT(*) FROM ' . t('budget_items') . ' b WHERE b.category_id = c.id) + (SELECT COUNT(*) FROM ' . t('unit_categories') . ' u WHERE u.category_id = c.id) AS used
                FROM ' . t('expense_categories') . ' c ORDER BY c.sort_order, c.id');
     $by = array_column($r, null, 'id');
@@ -60,7 +60,7 @@ function categories_all(): array
         return $p === null ? 1 : 1 + $level((int)$p);
     };
     $out = [];
-    foreach ($r as $c) $out[] = ['id' => (int)$c['id'], 'parentId' => $c['parent_id'] === null ? null : (int)$c['parent_id'], 'name' => $c['name'], 'level' => $level((int)$c['id']), 'active' => (int)$c['is_active'] === 1, 'sort' => (int)$c['sort_order'], 'used' => (int)$c['used']];
+    foreach ($r as $c) $out[] = ['id' => (int)$c['id'], 'parentId' => $c['parent_id'] === null ? null : (int)$c['parent_id'], 'name' => $c['name'], 'level' => $level((int)$c['id']), 'active' => (int)$c['is_active'] === 1, 'needsMemo' => (int)$c['needs_memo'] === 1, 'sort' => (int)$c['sort_order'], 'used' => (int)$c['used']];
     return $out;
 }
 
@@ -139,7 +139,9 @@ route('POST', '/categories/{id}', function (int $id) {
     $name = array_key_exists('name', $b) ? in_str($b, 'name', 40, true, '이름') : $cur['name'];
     $active = array_key_exists('active', $b) ? (int)(bool)$b['active'] : (int)$cur['is_active'];
     if ($name !== $cur['name'] && val('SELECT COUNT(*) FROM ' . t('expense_categories') . ' WHERE name = ? AND parent_id <=> ? AND id <> ?', [$name, $cur['parent_id'], $id])) json_fail('duplicate', '같은 곳에 같은 이름이 있습니다.', 409);
-    q('UPDATE ' . t('expense_categories') . ' SET name = ?, is_active = ? WHERE id = ?', [$name, $active, $id]);
+    $memo = array_key_exists('needsMemo', $b) ? (int)(bool)$b['needsMemo'] : (int)$cur['needs_memo'];
+    q('UPDATE ' . t('expense_categories') . ' SET name = ?, is_active = ?, needs_memo = ? WHERE id = ?', [$name, $active, $memo, $id]);
+    if ($memo !== (int)$cur['needs_memo']) change_log('category', $id, 'needs_memo', $cur['needs_memo'], $memo);
     if ($name !== $cur['name']) change_log('category', $id, 'name', $cur['name'], $name);
     if ($active !== (int)$cur['is_active']) change_log('category', $id, 'active', $cur['is_active'], $active);
     json_out(null);
@@ -240,9 +242,23 @@ function spending_data(array $a, int $year, ?string $from, ?string $to, int $lev
         $colTotals[$col] = ($colTotals[$col] ?? 0) + $s;
         for ($c = $cat; $c !== null && isset($byCat[$c]); $c = $byCat[$c]['parentId']) $tree[$c] = ($tree[$c] ?? 0) + $s;
     }
+    // 결재 중(아직 지급 전) 내역: 결재 중·결재 완료 결의서. 기간은 상신일 기준.
+    $psql = 'SELECT v.unit_id, bi.category_id AS cat, SUM(vi.amount) AS s FROM ' . t('voucher_items') . ' vi JOIN ' . t('vouchers') . ' v ON v.id = vi.voucher_id JOIN ' . t('budget_items') . " bi ON bi.id = vi.budget_item_id WHERE v.fiscal_year = ? AND v.status IN ('결재 중','결재 완료')";
+    $pparams = [$year];
+    if ($from) { $psql .= ' AND v.submitted_at >= ?'; $pparams[] = $from . '-01 00:00:00'; }
+    if ($to) { $psql .= ' AND v.submitted_at <= ?'; $pparams[] = date('Y-m-t', strtotime($to . '-01')) . ' 23:59:59'; }
+    $pc = []; // unit → col → 결재 중 금액
+    $pTotals = [];
+    foreach (rows($psql . ' GROUP BY v.unit_id, bi.category_id', $pparams) as $r) {
+        $uid = (int)$r['unit_id'];
+        if (!isset($visible[$uid])) continue;
+        $col = $up($r['cat'] === null ? null : (int)$r['cat']) ?? 0;
+        $pc[$uid][$col] = ($pc[$uid][$col] ?? 0) + (int)$r['s'];
+        $pTotals[$col] = ($pTotals[$col] ?? 0) + (int)$r['s'];
+    }
     $columns = [];
-    foreach ($cats as $c) if ($c['level'] === $level || ($c['level'] < $level && !array_filter($cats, fn($x) => $x['parentId'] === $c['id']))) if (!empty($colTotals[$c['id']])) $columns[] = ['id' => $c['id'], 'name' => $c['name']];
-    if (!empty($colTotals[0])) $columns[] = ['id' => 0, 'name' => '미분류'];
+    foreach ($cats as $c) if ($c['level'] === $level || ($c['level'] < $level && !array_filter($cats, fn($x) => $x['parentId'] === $c['id']))) if (!empty($colTotals[$c['id']]) || !empty($pTotals[$c['id']])) $columns[] = ['id' => $c['id'], 'name' => $c['name']];
+    if (!empty($colTotals[0]) || !empty($pTotals[0])) $columns[] = ['id' => 0, 'name' => '미분류'];
     $unitBudget = fn(array $u) => array_sum(array_column($u['items'], 'budget'));
     $rowsOut = [];
     $addRow = function (array $u, int $depth, array $cell, int $budget) use (&$rowsOut) {
@@ -272,15 +288,31 @@ function spending_data(array $a, int $year, ?string $from, ?string $to, int $lev
             $addRow($u, 0, $own, $unitBudget($u));
         }
     }
-    $total = ['budget' => 0, 'paid' => 0, 'cells' => []];
+    foreach ($rowsOut as &$pr) {
+        $uid = $pr['id'];
+        if (!empty($pr['group'])) {
+            $list = [$pc[$uid] ?? []];
+            foreach ($children[$uid] ?? [] as $k) $list[] = $pc[$k['id']] ?? [];
+            $pcell = $sum($list);
+        } else {
+            $pcell = $pc[$uid] ?? [];
+        }
+        $pr['pending'] = array_sum($pcell);
+        $pr['pcells'] = (object)$pcell;
+    }
+    unset($pr);
+    $total = ['budget' => 0, 'paid' => 0, 'pending' => 0, 'cells' => [], 'pcells' => []];
     // 총계: 맨 윗단계 행만 더한다(위원회 행은 소속 부서를 이미 포함)
     foreach ($rowsOut as $r) {
         if ($r['depth'] !== 0) continue;
         $total['budget'] += $r['budget'];
         $total['paid'] += $r['paid'];
+        $total['pending'] += $r['pending'];
         foreach ((array)$r['cells'] as $k => $v) $total['cells'][$k] = ($total['cells'][$k] ?? 0) + $v;
+        foreach ((array)$r['pcells'] as $k => $v) $total['pcells'][$k] = ($total['pcells'][$k] ?? 0) + $v;
     }
     $total['cells'] = (object)$total['cells'];
+    $total['pcells'] = (object)$total['pcells'];
     $treeOut = [];
     foreach ($cats as $c) if (!empty($tree[$c['id']])) $treeOut[] = ['id' => $c['id'], 'parentId' => $c['parentId'], 'name' => $c['name'], 'level' => $c['level'], 'paid' => $tree[$c['id']]];
     if (!empty($colTotals[0])) $treeOut[] = ['id' => 0, 'parentId' => null, 'name' => '미분류', 'level' => 1, 'paid' => $colTotals[0]];
@@ -308,19 +340,23 @@ route('GET', '/export/spending', function () {
     $why = dl_take('spending');
     $d = spending_data($a, $year, $from, $to, $level);
     audit('부서별 지출 정리 내려받기', $year . $why, $a);
+    $withP = !empty($_GET['pending']);
     $head = ['위원회·부서', '예산'];
     foreach ($d['columns'] as $c) $head[] = $c['name'];
     $head[] = '지출 합계';
+    if ($withP) $head[] = '결재 중';
     $out = [$head];
     foreach ($d['rows'] as $r) {
         $line = [str_repeat('  ', $r['depth']) . $r['name'], (int)$r['budget']];
         foreach ($d['columns'] as $c) $line[] = (int)(((array)$r['cells'])[$c['id']] ?? 0);
         $line[] = (int)$r['paid'];
+        if ($withP) $line[] = (int)$r['pending'];
         $out[] = $line;
     }
     $line = ['합계', (int)$d['total']['budget']];
     foreach ($d['columns'] as $c) $line[] = (int)(((array)$d['total']['cells'])[$c['id']] ?? 0);
     $line[] = (int)$d['total']['paid'];
+    if ($withP) $line[] = (int)$d['total']['pending'];
     $out[] = $line;
     csv_out('spending-' . $year, $out);
 });

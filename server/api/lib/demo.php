@@ -273,6 +273,12 @@ function demo_seed(): void
     q('UPDATE ' . t('vouchers') . ' SET paid_at = ?, paid_wallet_id = ?, paid_by = 1 WHERE id = ?', [$d0 . ' 00:00:00', $bank, $v1]);
     $vo('성탄 행사 준비물', (int)$items[$dept['id']]['행사비'], 420000, '결재 중', [['부서장', $hp, $hn, '완료'], ['위원장', $cp, $cn, '대기'], ['재정위원장', $fp, $fn, '대기']], "$year-0002");
     $vo('교육 교재 구입', (int)$items[$dept['id']]['교육비'], 150000, '작성 중', [], null);
+    // 행사 정산(가짜): 성탄 행사. 수입(회비)과 지출을 연결
+    $ev = insert_id('INSERT INTO ' . t('events') . ' (fiscal_year, unit_id, name, starts_on, budget, note) VALUES (?,?,?,?,?,?)', [$year, $dept['id'], '체험 성탄 행사', $year . '-12-24', 1500000, '체험용 행사']);
+    $tx('수입', $bank, $other, $dept['id'], null, 600000, '성탄 행사 참가비');
+    q('UPDATE ' . t('transactions') . ' SET event_id = ? WHERE id = ?', [$ev, (int)db()->lastInsertId()]);
+    q('UPDATE ' . t('transactions') . ' SET event_id = ? WHERE source = ? ORDER BY id LIMIT 1', [$ev, '결의서']);
+    q('UPDATE ' . t('voucher_items') . ' SET event_id = ? WHERE voucher_id = (SELECT id FROM (SELECT id FROM ' . t('vouchers') . " WHERE status = '결재 중' ORDER BY id LIMIT 1) x)", [$ev]);
     q('INSERT INTO ' . t('meta') . " (k, v) VALUES (?, '2') ON DUPLICATE KEY UPDATE v = '2'", ['voucher_seq_' . $year]);
     q('INSERT INTO ' . t('meta') . " (k, v) VALUES ('demo_seeded_on', ?) ON DUPLICATE KEY UPDATE v = VALUES(v)", [date('Y-m-d H:i:s')]);
 }

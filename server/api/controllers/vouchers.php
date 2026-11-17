@@ -212,7 +212,7 @@ function can_draft_for_unit(array $a, int $unitId, int $year): bool
 
 function voucher_items(int $id): array
 {
-    return rows('SELECT vi.id, vi.budget_item_id, vi.summary, vi.amount, bi.name AS item FROM ' . t('voucher_items') . ' vi JOIN ' . t('budget_items') . ' bi ON bi.id = vi.budget_item_id WHERE vi.voucher_id = ? ORDER BY vi.id', [$id]);
+    return rows('SELECT vi.id, vi.budget_item_id, vi.summary, vi.amount, vi.event_id, bi.name AS item FROM ' . t('voucher_items') . ' vi JOIN ' . t('budget_items') . ' bi ON bi.id = vi.budget_item_id WHERE vi.voucher_id = ? ORDER BY vi.id', [$id]);
 }
 
 function content_hash(array $v, array $items): string
@@ -265,7 +265,7 @@ function voucher_detail(array $a, array $v): array
         'id' => (int)$v['id'], 'docNo' => $v['doc_no'], 'year' => (int)$v['fiscal_year'], 'unitId' => (int)$v['unit_id'], 'unit' => $unit['name'], 'drafter' => $v['drafter_name'], 'title' => $v['title'], 'reason' => $v['reason'],
         'total' => (int)$v['total'], 'payMethod' => $v['pay_method'], 'payBank' => $v['pay_bank'], 'payAccount' => $v['pay_account'], 'payHolder' => $v['pay_holder'], 'desiredDate' => $v['desired_date'], 'noProofReason' => $v['no_proof_reason'],
         'status' => $v['status'], 'rev' => (int)$v['rev'], 'round' => (int)$v['round'], 'submittedAt' => $v['submitted_at'], 'approvedAt' => $v['approved_at'], 'paidAt' => $v['paid_at'],
-        'items' => array_map(fn($i) => ['id' => (int)$i['id'], 'budgetItemId' => (int)$i['budget_item_id'], 'item' => $i['item'], 'summary' => $i['summary'], 'amount' => (int)$i['amount']], $items),
+        'items' => array_map(fn($i) => ['id' => (int)$i['id'], 'budgetItemId' => (int)$i['budget_item_id'], 'item' => $i['item'], 'summary' => $i['summary'], 'amount' => (int)$i['amount'], 'eventId' => $i['event_id'] === null ? null : (int)$i['event_id']], $items),
         'files' => array_map(fn($f) => ['id' => (int)$f['id'], 'mime' => $f['mime'], 'size' => (int)$f['size'], 'name' => $f['orig_name']], $files),
         'steps' => array_map(fn($s) => ['round' => (int)$s['round'], 'no' => (int)$s['step_no'], 'role' => $s['role'], 'name' => $s['approver_name'], 'mode' => $s['mode'], 'status' => $s['status'], 'actedAt' => $s['acted_at'], 'delegate' => (int)$s['as_delegate'] === 1, 'comment' => $s['comment'], 'hash' => $s['content_hash'] ? substr($s['content_hash'], 0, 12) : null], $steps),
         'can' => [
@@ -361,7 +361,11 @@ function voucher_fields(array $b, array $a, ?array $cur): array
     foreach (is_array($b['items'] ?? null) ? $b['items'] : [] as $it) {
         $bi = in_int($it, 'budgetItemId', 1, PHP_INT_MAX, '예산 항목');
         if (!val('SELECT COUNT(*) FROM ' . t('budget_items') . ' WHERE id = ? AND unit_id = ? AND is_active = 1', [$bi, $unitId])) json_fail('invalid', '예산 항목이 이 결의서의 재정 단위에 속하지 않습니다.', 422);
-        $items[] = [$bi, in_str($it, 'summary', 255, true, '적요'), in_int($it, 'amount', 1, 9_000_000_000_000, '금액')];
+        $ev = isset($it['eventId']) && $it['eventId'] !== null && $it['eventId'] !== '' && (int)$it['eventId'] > 0 ? event_check(in_int($it, 'eventId', 1, PHP_INT_MAX, '행사'), $year) : null;
+        $items[] = [$bi, in_str($it, 'summary', 255, true, '적요'), in_int($it, 'amount', 1, 9_000_000_000_000, '금액'), $ev];
+        if ((int)val('SELECT COALESCE(c.needs_memo,0) FROM ' . t('budget_items') . ' b LEFT JOIN ' . t('expense_categories') . ' c ON c.id = b.category_id WHERE b.id = ?', [$bi]) === 1 && mb_strlen(trim($reason)) < 5) {
+            json_fail('memo_required', "'기타'처럼 메모가 필요한 카테고리예요. 사용 목적(사유)을 5자 이상 적어 주세요.", 422);
+        }
     }
     if (!$items) json_fail('invalid', '지출 내역을 한 줄 이상 적어 주세요.', 422);
     return [$unitId, $year, $title, $reason, $pay, $bank, $account, $holder, $desired, in_str($b, 'noProofReason', 255), $items, array_sum(array_column($items, 2))];
@@ -370,7 +374,7 @@ function voucher_fields(array $b, array $a, ?array $cur): array
 function save_items(int $vid, array $items): void
 {
     q('DELETE FROM ' . t('voucher_items') . ' WHERE voucher_id = ?', [$vid]);
-    foreach ($items as [$bi, $sum, $amt]) q('INSERT INTO ' . t('voucher_items') . ' (voucher_id, budget_item_id, summary, amount) VALUES (?,?,?,?)', [$vid, $bi, $sum, $amt]);
+    foreach ($items as $it) q('INSERT INTO ' . t('voucher_items') . ' (voucher_id, budget_item_id, summary, amount, event_id) VALUES (?,?,?,?,?)', [$vid, $it[0], $it[1], $it[2], $it[3] ?? null]);
 }
 
 route('POST', '/vouchers', function () {
@@ -607,8 +611,8 @@ route('POST', '/vouchers/{id}/pay', function (int $id) {
         require_month_open($paidOn);
         foreach (voucher_items($id) as $i) {
             $tid = insert_id(
-                'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, unit_id, budget_item_id, amount, summary, vendor, source, source_id, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                [$v['fiscal_year'], $paidOn, '지출', $w['fund_id'], $wid, $v['unit_id'], $i['budget_item_id'], $i['amount'], mb_substr($v['doc_no'] . ' ' . $v['title'] . ' - ' . $i['summary'], 0, 255), $v['pay_holder'], '결의서', $id, $a['access']['id']]
+                'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, unit_id, budget_item_id, amount, summary, vendor, source, source_id, created_by, event_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                [$v['fiscal_year'], $paidOn, '지출', $w['fund_id'], $wid, $v['unit_id'], $i['budget_item_id'], $i['amount'], mb_substr($v['doc_no'] . ' ' . $v['title'] . ' - ' . $i['summary'], 0, 255), $v['pay_holder'], '결의서', $id, $a['access']['id'], $i['event_id']]
             );
             q('UPDATE ' . t('voucher_items') . ' SET transaction_id = ? WHERE id = ?', [$tid, $i['id']]);
         }

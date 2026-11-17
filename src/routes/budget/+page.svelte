@@ -20,6 +20,22 @@
 	type Cat = { id: number; parentId: number | null; name: string; level: number; active: boolean };
 	let cats = $state<Cat[]>([]);
 	let allowed = $state<Record<number, number[]>>({});
+	type Un = { id: number; name: string; unit: string; unitId: number; suggestId: number | null; limited: boolean };
+	let uncat = $state<Un[]>([]);
+	let pick = $state<Record<number, number>>({});
+	async function loadUncat() {
+		try {
+			uncat = (await auth.api<{ items: Un[] }>('GET', '/budget-items/uncategorized?year=' + year)).items;
+			pick = Object.fromEntries(uncat.map((u) => [u.id, pick[u.id] ?? u.suggestId ?? 0]));
+		} catch {
+			uncat = []; // 재정 담당이 아니면 목록을 못 받는다(보이지 않음)
+		}
+	}
+	const saveUncat = (all: boolean) => {
+		const list = uncat.filter((u) => pick[u.id] && (all || u.suggestId === pick[u.id])).map((u) => ({ id: u.id, categoryId: pick[u.id] }));
+		if (!list.length) return;
+		return run(() => auth.api('POST', '/budget-items/categorize', { assignments: list }), `${list.length}개 항목에 카테고리를 지정했어요.`).then(loadUncat);
+	};
 	const catById = $derived(Object.fromEntries(cats.map((c) => [c.id, c])) as Record<number, Cat>);
 	/** '관 › 항 › 목' 이름 */
 	const catPath = (id: number | null): string => {
@@ -56,6 +72,7 @@
 		try {
 			b = await auth.api<B>('GET', '/budget?year=' + year);
 			cats = (await auth.api<{ items: Cat[] }>('GET', '/categories')).items;
+			if (b.canEdit) await loadUncat();
 			allowed = Object.fromEntries((await auth.api<{ items: { id: number; categoryIds: number[] }[] }>('GET', '/unit-categories?year=' + year)).items.map((u) => [u.id, u.categoryIds]));
 			incomeEdit = Object.fromEntries(b.income.map((i) => [i.accountId, String(i.budget || '')]));
 			dir = Object.fromEntries(b.units.flatMap((u) => u.items).map((i) => [i.id, { ok: i.directOk, limit: i.directLimit === null ? '' : String(i.directLimit) }]));
@@ -120,6 +137,19 @@
 			<div class="row" style="flex-wrap:wrap"><span class="fs-s muted">공동의회에서 확정한 날</span><input type="date" bind:value={confirmDate} style="width:auto" /><button class="sm" type="button" disabled={busy} onclick={confirmBudget}>예산 확정</button></div>
 		{:else if !confirmed}<p class="fs-s muted">예산 확정은 재정위원장이 합니다. 확정 전에는 항목을 직접 고칠 수 있어요.</p>{/if}
 	</div>
+
+	{#if uncat.length && cats.length}
+		<div class="card">
+			<div class="card-head"><h2>카테고리 미지정 {uncat.length}개</h2><span class="sub">지정하면 부서별 지출 정리에 분류돼요</span></div>
+			<p class="fs-s muted">이름이 비슷한 카테고리를 미리 골라 두었어요. 맞는지 확인하고 저장하세요. (금액은 바뀌지 않아 예산 확정 뒤에도 할 수 있어요)</p>
+			<div class="scroll-x"><table class="sm"><tbody>
+				{#each uncat as u (u.id)}
+					<tr><td>{u.unit}</td><td><b>{u.name}</b></td><td><select bind:value={pick[u.id]} aria-label="카테고리"><option value={0}>선택 안 함</option>{#each catChoices(u.unitId) as c}<option value={c.id}>{catPath(c.id)}</option>{/each}</select></td></tr>
+				{/each}
+			</tbody></table></div>
+			<div class="row mt" style="justify-content:flex-end"><button class="ghost sm" type="button" disabled={busy} onclick={() => saveUncat(false)}>제안대로만 저장</button><button class="sm" type="button" disabled={busy} onclick={() => saveUncat(true)}>고른 것 모두 저장</button></div>
+		</div>
+	{/if}
 
 	{#each b.units.filter((u) => u.kind !== '위원회' || u.items.length || b!.canEdit) as u (u.id)}
 		<div class="card">

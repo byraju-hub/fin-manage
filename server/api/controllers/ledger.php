@@ -137,9 +137,14 @@ route('POST', '/transactions', function () {
         if (is_array($b['proof'] ?? null) && !empty($b['proof']['data'])) $proof = proof_decode((string)$b['proof']['data']);
         if (!$proof && $proofNote === '' && !empty(direct_rules()['proof_required'])) json_fail('proof', '직접 지출은 증빙(영수증 사진)을 올리거나 증빙이 없는 사유를 적어야 합니다.', 422);
     }
+    $eventId = null;
+    if ($kind !== '이체' && isset($b['eventId']) && $b['eventId'] !== null && $b['eventId'] !== '' && (int)$b['eventId'] > 0) $eventId = event_check(in_int($b, 'eventId', 1, PHP_INT_MAX, '행사'), $year);
+    if ($kind === '지출' && $item && (int)val('SELECT COALESCE(c.needs_memo,0) FROM ' . t('budget_items') . ' b LEFT JOIN ' . t('expense_categories') . ' c ON c.id = b.category_id WHERE b.id = ?', [$item]) === 1 && mb_strlen(trim($summary)) < 5) {
+        json_fail('memo_required', "'기타'처럼 메모가 필요한 카테고리예요. 적요에 사용 내용을 5자 이상 적어 주세요.", 422);
+    }
     $id = insert_id(
-        'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, to_wallet_id, income_account_id, unit_id, budget_item_id, amount, summary, vendor, proof_note, source, is_direct, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [$year, $date, $kind, $w['fund_id'], $wid, $to, $acct, $unit, $item, $amount, $summary, $vendor ?: null, $proofNote ?: null, '직접', $isDirect, $a['access']['id']]
+        'INSERT INTO ' . t('transactions') . ' (fiscal_year, tx_date, kind, fund_id, wallet_id, to_wallet_id, income_account_id, unit_id, budget_item_id, amount, summary, vendor, proof_note, source, is_direct, created_by, event_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        [$year, $date, $kind, $w['fund_id'], $wid, $to, $acct, $unit, $item, $amount, $summary, $vendor ?: null, $proofNote ?: null, '직접', $isDirect, $a['access']['id'], $eventId]
     );
     if ($proof) {
         [$bin, $mime, $ext] = $proof;

@@ -245,3 +245,64 @@ route('GET', '/reports/execution', function () {
     }
     json_out(['units' => $out, 'income' => $income]);
 });
+
+// ---------------------------------------------------------------- 카테고리 일괄 지정 (이미 만든 예산 항목)
+
+/** 이름이 같거나 서로 포함되는 카테고리를 제안한다(부서에서 쓸 수 있는 범위 안에서) */
+function suggest_category(string $itemName, array $cats, array $allowedIds): ?int
+{
+    $n = preg_replace('/\s+/u', '', $itemName);
+    $best = null;
+    $bestScore = 0;
+    foreach ($cats as $c) {
+        if (!$c['active'] || array_filter($cats, fn($k) => $k['parentId'] === $c['id'] && $k['active'])) continue; // 맨 아래 단계만
+        if ($allowedIds && !in_array($c['id'], $allowedIds, true)) continue;
+        $cn = preg_replace('/\s+/u', '', $c['name']);
+        $score = 0;
+        if ($cn === $n) $score = 100;
+        elseif (mb_strlen($cn) >= 2 && (str_contains($n, $cn) || str_contains($cn, $n))) $score = 50 + min(mb_strlen($cn), mb_strlen($n));
+        elseif (mb_strlen($n) >= 2 && mb_strlen($cn) >= 2 && mb_substr($n, 0, 2) === mb_substr($cn, 0, 2)) $score = 20;
+        if ($score > $bestScore) { $bestScore = $score; $best = $c['id']; }
+    }
+    return $best;
+}
+
+route('GET', '/budget-items/uncategorized', function () {
+    $a = require_staff();
+    $year = in_int($_GET, 'year', 2000, 2100, '연도');
+    $cats = categories_all();
+    $allowed = [];
+    foreach (rows('SELECT uc.unit_id, uc.category_id FROM ' . t('unit_categories') . ' uc JOIN ' . t('units') . ' u ON u.id = uc.unit_id WHERE u.fiscal_year = ?', [$year]) as $r) $allowed[(int)$r['unit_id']][] = (int)$r['category_id'];
+    $r = rows('SELECT i.id, i.name, i.unit_id, u.name AS unit FROM ' . t('budget_items') . ' i JOIN ' . t('units') . ' u ON u.id = i.unit_id WHERE u.fiscal_year = ? AND i.is_active = 1 AND i.category_id IS NULL ORDER BY u.sort_order, i.sort_order, i.id', [$year]);
+    $items = array_map(function ($x) use ($cats, $allowed) {
+        $fam = isset($allowed[(int)$x['unit_id']]) ? category_family($allowed[(int)$x['unit_id']]) : [];
+        return ['id' => (int)$x['id'], 'name' => $x['name'], 'unitId' => (int)$x['unit_id'], 'unit' => $x['unit'], 'suggestId' => suggest_category($x['name'], $cats, $fam), 'limited' => (bool)$fam];
+    }, $r);
+    json_out(['items' => $items]);
+});
+
+/** [{id, categoryId}] 를 한꺼번에 지정. 금액은 바꾸지 않으므로 예산 확정 뒤에도 할 수 있다. 하나라도 틀리면 아무것도 바꾸지 않는다. */
+route('POST', '/budget-items/categorize', function () {
+    $a = require_staff();
+    $list = body()['assignments'] ?? null;
+    if (!is_array($list) || !$list || count($list) > 500) json_fail('invalid', '지정할 항목이 올바르지 않습니다.', 422);
+    $n = tx(function () use ($list) {
+        $n = 0;
+        foreach ($list as $x) {
+            $id = in_int(is_array($x) ? $x : [], 'id', 1, PHP_INT_MAX, '예산 항목');
+            $cat = in_int($x, 'categoryId', 1, PHP_INT_MAX, '카테고리');
+            $cur = row('SELECT * FROM ' . t('budget_items') . ' WHERE id = ?', [$id]);
+            if (!$cur) json_fail('not_found', '예산 항목을 찾을 수 없습니다.', 404);
+            if (unit_year((int)$cur['unit_id']) && val('SELECT status FROM ' . t('fiscal_years') . ' WHERE year = ?', [unit_year((int)$cur['unit_id'])]) === '마감') json_fail('closed', '마감된 해의 항목은 고칠 수 없어요.', 409);
+            unit_category_ok((int)$cur['unit_id'], $cat);
+            if ((int)$cur['category_id'] !== $cat) {
+                q('UPDATE ' . t('budget_items') . ' SET category_id = ? WHERE id = ?', [$cat, $id]);
+                change_log('budget_item', $id, 'category', $cur['category_id'], $cat);
+                $n++;
+            }
+        }
+        return $n;
+    });
+    audit('예산 항목 카테고리 일괄 지정', $n . '건', $a);
+    json_out(['changed' => $n]);
+});

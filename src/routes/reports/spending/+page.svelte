@@ -6,8 +6,8 @@
 	import { hrefTo } from '#lib/paths.ts';
 	import { dlOpen } from '#lib/download.svelte.ts';
 
-	type Row = { id: number; name: string; kind: string; depth: number; budget: number; paid: number; cells: Record<string, number>; group?: boolean };
-	type Res = { year: number; level: number; columns: { id: number; name: string }[]; rows: Row[]; total: { budget: number; paid: number; cells: Record<string, number> }; tree: { id: number; parentId: number | null; name: string; level: number; paid: number }[] };
+	type Row = { id: number; name: string; kind: string; depth: number; budget: number; paid: number; pending: number; cells: Record<string, number>; pcells: Record<string, number>; group?: boolean };
+	type Res = { year: number; level: number; columns: { id: number; name: string }[]; rows: Row[]; total: { budget: number; paid: number; pending: number; cells: Record<string, number>; pcells: Record<string, number> }; tree: { id: number; parentId: number | null; name: string; level: number; paid: number }[] };
 
 	let years = $state<number[]>([]);
 	let year = $state(0);
@@ -17,12 +17,13 @@
 	let res = $state<Res | null>(null);
 	let err = $state('');
 	let view = $state<'matrix' | 'tree'>('matrix');
+	let withPending = $state(false);
 
 	async function load() {
 		if (!year) return;
 		err = '';
 		try {
-			res = await auth.api<Res>('GET', `/reports/spending?year=${year}&level=${level}` + (from ? '&from=' + from : '') + (to ? '&to=' + to : ''));
+			res = await auth.api<Res>('GET', `/reports/spending?year=${year}&level=${level}` + (from ? '&from=' + from : '') + (to ? '&to=' + to : '') + (withPending ? '&pending=1' : ''));
 		} catch (e) {
 			err = errText(e);
 		}
@@ -40,7 +41,7 @@
 	const csv = $derived(hrefTo('/api/v1/export/spending') + `?year=${year}&level=${level}` + (from ? '&from=' + from : '') + (to ? '&to=' + to : ''));
 	const getCsv = () => dlOpen('spending', `${year}년 부서별 지출 정리`, csv).catch((e) => (err = errText(e)));
 	const pct = (p: number, b: number) => (b > 0 ? Math.round((p * 100) / b) + '%' : '');
-	const cell = (r: { cells: Record<string, number> }, id: number) => r.cells[String(id)] ?? 0;
+	const cell = (r: { cells: Record<string, number>; pcells: Record<string, number> }, id: number) => (r.cells[String(id)] ?? 0) + (withPending ? (r.pcells[String(id)] ?? 0) : 0);
 </script>
 
 <div class="row page-head no-print">
@@ -52,6 +53,7 @@
 		<input type="month" bind:value={from} style="width:auto" aria-label="시작 월" onchange={load} /> ~ <input type="month" bind:value={to} style="width:auto" aria-label="끝 월" onchange={load} />
 		<button class="ghost sm" class:on={view === 'matrix'} type="button" onclick={() => (view = 'matrix')}>부서 × 카테고리</button>
 		<button class="ghost sm" class:on={view === 'tree'} type="button" onclick={() => (view = 'tree')}>카테고리 합계</button>
+		<label class="row fs-s"><span class="switch"><input type="checkbox" bind:checked={withPending} /><i></i></span> 결재 중 포함</label>
 		<button class="ghost sm" type="button" onclick={getCsv}>엑셀로 받기</button>
 		<button class="ghost sm" type="button" onclick={() => window.print()}>인쇄</button>
 	</div>
@@ -63,20 +65,20 @@
 		<div class="card-head"><h2>{res.year}년 부서별 지출 {from ? `(${from}${to ? ' ~ ' + to : ''})` : ''}</h2><span class="sub">지급된 지출 · 취소 제외 · 예산은 연간 {res.year}년 기준</span></div>
 		{#if view === 'matrix'}
 			<div class="scroll-x"><table class="sm sp-t">
-				<thead><tr><th>위원회 · 부서</th><th class="right">예산</th>{#each res.columns as c (c.id)}<th class="right">{c.name}</th>{/each}<th class="right">지출 합계</th><th class="right">집행률</th></tr></thead>
+				<thead><tr><th>위원회 · 부서</th><th class="right">예산</th>{#each res.columns as c (c.id)}<th class="right">{c.name}</th>{/each}<th class="right">지출 합계</th>{#if withPending}<th class="right">결재 중</th>{/if}<th class="right">{withPending ? '지출+결재 중' : '집행률'}</th></tr></thead>
 				<tbody>
 					{#each res.rows as r, i (r.name + i)}
 						<tr class:grp={r.group}><td style="padding-left:{0.5 + r.depth * 1.1}rem">{#if r.group}<b>■ {r.name}</b>{:else}{r.name}{/if}</td>
 							<td class="right">{won(r.budget)}</td>
 							{#each res.columns as c (c.id)}<td class="right">{cell(r, c.id) ? won(cell(r, c.id)) : ''}</td>{/each}
-							<td class="right money">{won(r.paid)}</td><td class="right">{pct(r.paid, r.budget)}</td></tr>
+							<td class="right money">{won(r.paid)}</td>{#if withPending}<td class="right">{r.pending ? won(r.pending) : ''}</td>{/if}<td class="right">{withPending ? won(r.paid + r.pending) : pct(r.paid, r.budget)}</td></tr>
 					{:else}
 						<tr><td colspan={res.columns.length + 4} class="muted">이 기간의 지출이 없어요.</td></tr>
 					{/each}
-					<tr class="tot"><td>교회 전체</td><td class="right">{won(res.total.budget)}</td>{#each res.columns as c (c.id)}<td class="right">{won(cell(res.total, c.id))}</td>{/each}<td class="right money">{won(res.total.paid)}</td><td class="right">{pct(res.total.paid, res.total.budget)}</td></tr>
+					<tr class="tot"><td>교회 전체</td><td class="right">{won(res.total.budget)}</td>{#each res.columns as c (c.id)}<td class="right">{won(cell(res.total, c.id))}</td>{/each}<td class="right money">{won(res.total.paid)}</td>{#if withPending}<td class="right">{won(res.total.pending)}</td>{/if}<td class="right">{withPending ? won(res.total.paid + res.total.pending) : pct(res.total.paid, res.total.budget)}</td></tr>
 				</tbody>
 			</table></div>
-			<p class="fs-s muted">위원회 행(■)은 소속 부서의 합계예요. '미분류'는 카테고리가 연결되지 않은 예산 항목의 지출입니다. 예산 화면에서 항목에 카테고리를 연결하면 분류돼요.</p>
+			<p class="fs-s muted">'결재 중 포함'은 상신됐지만 아직 지급 전인 결의서 내역(상신일 기준)을 더해 보여 줘요. 위원회 행(■)은 소속 부서의 합계예요. '미분류'는 카테고리가 연결되지 않은 예산 항목의 지출입니다. 예산 화면에서 항목에 카테고리를 연결하면 분류돼요.</p>
 		{:else}
 			<table class="sm"><thead><tr><th>카테고리</th><th class="right">지출</th><th class="right">비율</th></tr></thead>
 				<tbody>

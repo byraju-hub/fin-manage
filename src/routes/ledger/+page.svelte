@@ -27,7 +27,8 @@
 	let busy = $state(false);
 	let proofData = $state('');
 	let proofName = $state('');
-	let f = $state({ noProofReason: '', kind: '수입', date: localDate(), walletId: 0, toWalletId: 0, incomeAccountId: 0, budgetItemId: 0, amount: '', summary: '', vendor: '' });
+	let events = $state<{ id: number; name: string }[]>([]);
+	let f = $state({ eventId: 0, noProofReason: '', kind: '수입', date: localDate(), walletId: 0, toWalletId: 0, incomeAccountId: 0, budgetItemId: 0, amount: '', summary: '', vendor: '' });
 
 	const leafIncome = $derived(accts.filter((a) => !a.isOffering && a.active && !accts.some((x) => x.parentId === a.id) && a.parentId !== null));
 	const directItems = $derived(units.flatMap((u) => u.items.filter((i) => i.directOk).map((i) => ({ ...i, unit: u.name }))));
@@ -51,6 +52,7 @@
 			wallets = (await auth.api<{ items: Wallet[] }>('GET', '/wallets/balances')).items;
 			if (!f.walletId) f.walletId = wallets.find((w) => w.active)?.id ?? 0;
 			units = (await auth.api<{ units: Unit[] }>('GET', '/budget?year=' + year)).units;
+			events = (await auth.api<{ items: { id: number; name: string; status: string }[] }>('GET', '/events?year=' + year)).items.filter((e) => e.status === '진행');
 			err = '';
 		} catch (e) {
 			err = errText(e);
@@ -63,7 +65,7 @@
 		err = '';
 		notice = '';
 		try {
-			const body = { ...f, proof: proofData ? { name: proofName, data: proofData } : undefined, amount: Number(f.amount.replace(/,/g, '')), walletId: f.walletId, toWalletId: f.toWalletId || undefined, incomeAccountId: f.incomeAccountId || undefined, budgetItemId: f.budgetItemId || undefined };
+			const body = { ...f, proof: proofData ? { name: proofName, data: proofData } : undefined, amount: Number(f.amount.replace(/,/g, '')), walletId: f.walletId, toWalletId: f.toWalletId || undefined, incomeAccountId: f.incomeAccountId || undefined, budgetItemId: f.budgetItemId || undefined, eventId: f.eventId || undefined };
 			await auth.api('POST', '/transactions', body);
 			notice = f.kind + '을(를) 등록했어요.';
 			f.amount = '';
@@ -164,6 +166,7 @@
 			<input bind:value={f.amount} inputmode="numeric" placeholder="금액 (원)" required />
 			<input bind:value={f.summary} placeholder="적요" maxlength="255" required />
 			{#if f.kind !== '이체'}<input bind:value={f.vendor} placeholder="거래처 (선택)" maxlength="100" />{/if}
+			{#if f.kind !== '이체' && events.length}<select bind:value={f.eventId} aria-label="행사"><option value={0}>행사 아님</option>{#each events as ev}<option value={ev.id}>{ev.name} (행사)</option>{/each}</select>{/if}
 			{#if f.kind === '지출'}
 				<label class="ghost sm" style="cursor:pointer;display:inline-block;padding:.45rem .8rem;border:1px solid var(--line-strong);border-radius:10px">{proofName ? '증빙: ' + proofName : '+ 영수증 사진·PDF'}<input type="file" accept="image/*,application/pdf" onchange={pickProof} style="display:none" /></label>
 				{#if !proofData}<input bind:value={f.noProofReason} placeholder="증빙이 없으면 사유" maxlength="255" />{/if}

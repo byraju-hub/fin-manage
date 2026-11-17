@@ -66,7 +66,7 @@
 			if (list.length) g.push({ name, items: list, direct });
 		};
 		add('헌금', [canOffer && { to: '/offerings', label: '헌금 입력', hint: '묶음·빠른 입력·대조·마감' }, canReport && { to: '/pledges', label: '작정헌금', hint: '작정·이행률·남은 금액' }, isStaff && { to: '/receipts', label: '기부금 영수증', hint: '연말 발급·발급 대장' }]);
-		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }]);
+		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }, canBudget && { to: '/events', label: '행사 정산', hint: '수련회·행사의 수입·지출' }]);
 		add('장부', [canLedger && { to: '/ledger', label: '장부', hint: '수입·지출·이체·계좌 잔액' }, canBudget && { to: '/budget', label: '예산', hint: '편성·확정·추경·집행' }, canLedger && { to: '/closing', label: '마감', hint: '월 마감·연 마감·이월' }]);
 		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '주간·월·집행·결산' }, canReport && { to: '/reports/groups', label: '교구별 헌금', hint: '모임별 합계(개인별 금액 없음)' }, canBudget && { to: '/reports/spending', label: '부서별 지출', hint: '위원회·부서 × 카테고리' }], true);
 		add('설정', [

@@ -5,7 +5,7 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import { errText } from '#lib/fmt.ts';
 
-	type Cat = { id: number; parentId: number | null; name: string; level: number; active: boolean; sort: number; used: number };
+	type Cat = { id: number; parentId: number | null; name: string; level: number; active: boolean; needsMemo: boolean; sort: number; used: number };
 	type UnitC = { id: number; parentId: number | null; kind: string; name: string; categoryIds: number[] };
 
 	let tab = $state<'cats' | 'units'>('cats');
@@ -83,6 +83,7 @@
 		if (await run(() => auth.api('POST', '/categories/' + renaming!.id, { name: renaming!.name.trim() }), '이름을 바꿨어요.')) renaming = null;
 	}
 	const toggle = (c: Cat) => run(() => auth.api('POST', '/categories/' + c.id, { active: !c.active }), c.active ? `'${c.name}'을(를) 사용 안 함으로 바꿨어요. 이미 쓴 기록은 그대로예요.` : `'${c.name}'을(를) 다시 쓰게 했어요.`);
+	const memo = (c: Cat) => run(() => auth.api('POST', '/categories/' + c.id, { needsMemo: !c.needsMemo }), c.needsMemo ? `'${c.name}'의 메모 필수를 껐어요.` : `'${c.name}'은(는) 이제 사용 목적 메모를 꼭 적어야 해요.`);
 	const move = (c: Cat, dir: 'up' | 'down') => run(() => auth.api('POST', `/categories/${c.id}/move`, { dir }));
 	const del = (c: Cat) => confirm(`'${c.name}'을(를) 지울까요?`) && run(() => auth.api('POST', `/categories/${c.id}/delete`, {}), '지웠어요.');
 
@@ -139,11 +140,12 @@
 						<input bind:value={renaming.name} maxlength="40" style="max-width:14rem" onkeydown={(e) => e.key === 'Enter' && renameCat()} />
 						<button class="sm" type="button" disabled={busy} onclick={renameCat}>저장</button><button class="ghost sm" type="button" onclick={() => (renaming = null)}>취소</button>
 					{:else}
-						<span class="lv">{['관', '항', '목'][c.level - 1]}</span><b>{c.name}</b>{#if !c.active}<span class="tag part">사용 안 함</span>{/if}{#if c.used}<small class="muted">쓰는 곳 {c.used}</small>{/if}
+						<span class="lv">{['관', '항', '목'][c.level - 1]}</span><b>{c.name}</b>{#if !c.active}<span class="tag part">사용 안 함</span>{/if}{#if c.needsMemo}<span class="tag now" title="이 카테고리를 쓰는 결의서·직접 지출은 사용 목적(사유)을 적어야 해요">메모 필수</span>{/if}{#if c.used}<small class="muted">쓰는 곳 {c.used}</small>{/if}
 						<span class="sp"></span>
 						<button class="ghost sm" type="button" title="위로" onclick={() => move(c, 'up')}>↑</button><button class="ghost sm" type="button" title="아래로" onclick={() => move(c, 'down')}>↓</button>
 						{#if c.level < 3}<button class="ghost sm" type="button" onclick={() => (adding = { parent: c.id, name: '' })}>+ {['항', '목'][c.level - 1]}</button>{/if}
 						<button class="ghost sm" type="button" onclick={() => (renaming = { id: c.id, name: c.name })}>이름</button>
+						<button class="ghost sm" type="button" onclick={() => memo(c)}>{c.needsMemo ? '메모 필수 끄기' : '메모 필수'}</button>
 						<button class="ghost sm" type="button" onclick={() => toggle(c)}>{c.active ? '사용 안 함' : '다시 사용'}</button>
 						<button class="ghost sm" type="button" onclick={() => del(c)}>지우기</button>
 					{/if}
