@@ -10,7 +10,7 @@ export type Me = {
 	access: { status: string; isAdmin: boolean; roles: string[]; canViewDonors: boolean; requestedAt: string } | null;
 };
 
-type MePayload = { church: string; contact?: { phone: string; address: string; officer: string }; csrf: string; me: Me | null; links?: { cm: string; dm: string }; demoAvailable?: boolean };
+type MePayload = { church: string; contact?: { phone: string; address: string; officer: string; email: string }; csrf: string; me: Me | null; links?: { cm: string; dm: string }; demoAvailable?: boolean };
 
 export class ApiError extends Error {
 	constructor(
@@ -25,7 +25,7 @@ export class ApiError extends Error {
 class Auth {
 	ready = $state(false);
 	church = $state('');
-	contact = $state({ phone: '', address: '', officer: '' });
+	contact = $state({ phone: '', address: '', officer: '', email: '' });
 	me = $state<Me | null>(null);
 	links = $state<{ cm: string; dm: string }>({ cm: '', dm: '' });
 	demoAvailable = $state(false);

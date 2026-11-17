@@ -186,7 +186,7 @@
 		<div class="card-head"><h2>주민등록번호</h2><span class="sub">지금: {st.rrnMode === 'keep' ? '암호화 보관' : '보관 안 함'}</span></div>
 		{#if st.rrnMode === 'keep'}
 			<p class="fs-s muted">번호는 AES-256으로 암호화되어 영수증을 인쇄할 때만 풀립니다. 마지막 헌금 뒤 일정 기간이 지난 분의 번호는 아래에서 지울 수 있어요.</p>
-			<div class="row" style="flex-wrap:wrap"><input type="number" bind:value={purgeYears} min="1" max="30" style="width:5rem" aria-label="기간(년)" />년 지난 헌금자
+			<div class="row" style="flex-wrap:wrap"><input type="number" bind:value={purgeYears} min="5" max="30" style="width:5rem" aria-label="기간(년)" />년 지난 헌금자
 				<button class="ghost sm" type="button" disabled={busy} onclick={() => purge(false)}>대상 확인</button>
 				{#if purgeCount !== null}<span class="fs-s">대상 {purgeCount}명</span>{#if purgeCount > 0}<button class="sm" type="button" disabled={busy} onclick={() => purge(true)}>번호 지우기</button>{/if}{/if}</div>
 			<div class="row mt"><button class="ghost sm" type="button" disabled={busy} onclick={() => setRrn('none')}>보관하지 않는 방식으로 바꾸기 (저장된 번호 모두 삭제)</button></div>

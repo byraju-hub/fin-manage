@@ -27,8 +27,9 @@ route('GET', '/auth/me', function () {
     // 개인정보 처리방침(로그인 전에도 보임)에 쓰는 연락처: 교적(church_info)의 책임자 이름·연락처를 먼저, 없으면 재정에 복사된 교회 정보
     $cmc = fm_cm_church(db(), fm_config()['cm_prefix'] ?? 'cm_');
     $contact = [
-        'officer' => (string)($cmc['privacyOfficer'] ?? ($cmc['pastorName'] ?? ($ci['pastorName'] ?? ''))),
-        'phone' => (string)($cmc['privacyPhone'] ?? ($cmc['phone'] ?? ($ci['phone'] ?? ''))),
+        'officer' => (string)(($cmc['privacyOfficer'] ?? '') ?: ($cmc['pastorName'] ?? '') ?: ($ci['pastorName'] ?? '')),
+        'phone' => (string)(($cmc['privacyPhone'] ?? '') ?: ($cmc['phone'] ?? '') ?: ($ci['phone'] ?? '')),
+        'email' => (string)(($cmc['privacyEmail'] ?? '') ?: ($cmc['email'] ?? '') ?: ($ci['email'] ?? '')),
         'address' => (string)($cmc['address'] ?? ($ci['address'] ?? '')),
     ];
     json_out(['church' => $church, 'contact' => $contact, 'csrf' => $csrf, 'links' => app_links(), 'demoAvailable' => demo_available(), 'me' => $a ? account_payload($a) : null]);

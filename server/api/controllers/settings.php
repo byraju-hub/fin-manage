@@ -136,7 +136,7 @@ route('POST', '/settings/rrn-mode', function () {
 route('POST', '/settings/rrn-purge', function () {
     $a = require_admin();
     $b = body();
-    $years = in_int($b, 'years', 1, 30, '기간(년)');
+    $years = in_int($b, 'years', 5, 30, '기간(년, 법정 보관 5년 이상)');
     $cut = date('Y-m-d', strtotime("-{$years} years"));
     $ids = array_column(rows('SELECT d.id FROM ' . t('donors') . ' d WHERE d.rrn_enc IS NOT NULL AND COALESCE((SELECT MAX(o.offering_date) FROM ' . t('offerings') . ' o WHERE o.donor_id = d.id), DATE(d.created_at)) < ?', [$cut]), 'id');
     if (!empty($b['apply']) && $ids) {
