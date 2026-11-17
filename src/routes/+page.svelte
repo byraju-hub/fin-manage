@@ -133,7 +133,26 @@
 	<div class="card"><p class="muted">불러오는 중…</p></div>
 {/if}
 
+<a class="manual-banner" href={hrefTo('/manual')}>
+	<span class="mb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5v-15z" /><path d="M4 20.5A2.5 2.5 0 016.5 18H20v3H6.5A2.5 2.5 0 014 20.5z" /><path d="M9 7.5h7M9 11h5" /></svg></span>
+	<span class="mb-tx"><b>프로그램 매뉴얼</b><small>헌금 입력부터 결의서·결재·마감·영수증·설정까지, 화면 순서대로 정리했어요</small></span>
+	<span class="mb-go">매뉴얼 보기<i aria-hidden="true">→</i></span>
+</a>
+
 <style>
+	/* 프로그램 매뉴얼 배너: 대시보드 맨 아래의 큰 버튼 */
+	.manual-banner { position: relative; overflow: hidden; display: flex; align-items: center; gap: 1rem; margin-top: 1.1rem; padding: 1.1rem 1.4rem; border-radius: 18px; color: #fff; text-decoration: none;
+		background: radial-gradient(120% 160% at 100% 0%, rgba(20, 180, 174, 0.55), transparent 55%), linear-gradient(120deg, var(--navy), #4558ae); box-shadow: var(--shadow-md); transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease); }
+	.manual-banner:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(43, 62, 149, 0.35); text-decoration: none; color: #fff; }
+	.manual-banner .mb-ic { flex: none; width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.32); }
+	.manual-banner .mb-ic svg { width: 28px; height: 28px; fill: none; stroke: #fff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+	.manual-banner .mb-tx { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+	.manual-banner .mb-tx b { color: #fff; font-size: 1.15rem; }
+	.manual-banner .mb-tx small { color: rgba(255, 255, 255, 0.85); font-size: 0.86rem; line-height: 1.45; }
+	.manual-banner .mb-go { flex: none; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; border-radius: 999px; background: #fff; color: var(--navy); font-weight: 800; font-size: 0.92rem; }
+	.manual-banner:hover .mb-go i { transform: translateX(4px); }
+	.manual-banner .mb-go i { font-style: normal; transition: transform 0.2s var(--ease); }
+	@media (max-width: 640px) { .manual-banner { flex-wrap: wrap; padding: 1rem; } .manual-banner .mb-go { width: 100%; justify-content: center; } }
 	.bars { display: flex; align-items: flex-end; gap: 0.5rem; height: 150px; padding-top: 0.5rem; }
 	.bar-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 0.3rem; }
 	.bar-fill { width: 100%; max-width: 38px; border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, #17a58c, #2b3e95); min-height: 2px; }

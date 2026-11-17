@@ -47,7 +47,7 @@ for d in (dH, dM, dX): sql("delete from cm_consents where person_id=(select pers
 s, j = stf.call('GET', '/donors/consent-status?ids=%d' % dH); st = j['data']['states'][str(dH)]
 check('교적 동의가 없으면 동의 없음', st['state'] == 'none', st)
 CID = sql("select uuid()")
-sql("insert into cm_consents (id, person_id, kind, policy_version, consent_date, method) values ('%s', '%s', '교적 등록', '2026-11-17', curdate(), '서면')" % (CID, headp))
+sql("insert into cm_consents (id, person_id, kind, policy_version, consent_date, method) values ('%s', '%s', '교적 등록', '2026-11-25', curdate(), '서면')" % (CID, headp))
 st = stf.call('GET', '/donors/consent-status?ids=%d' % dH)[1]['data']['states'][str(dH)]; check('현재 판 동의는 동의 있음', st['state'] == 'ok', st)
 sql("update cm_consents set policy_version='2025-01-01' where id='%s'" % CID)
 st = stf.call('GET', '/donors/consent-status?ids=%d' % dH)[1]['data']['states'][str(dH)]; check('이전 판 동의는 이전 판 표시', st['state'] == 'old', st)
