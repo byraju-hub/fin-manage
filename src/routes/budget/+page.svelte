@@ -70,13 +70,19 @@
 	}
 	async function load() {
 		try {
-			b = await auth.api<B>('GET', '/budget?year=' + year);
-			cats = (await auth.api<{ items: Cat[] }>('GET', '/categories')).items;
-			if (b.canEdit) await loadUncat();
-			allowed = Object.fromEntries((await auth.api<{ items: { id: number; categoryIds: number[] }[] }>('GET', '/unit-categories?year=' + year)).items.map((u) => [u.id, u.categoryIds]));
-			incomeEdit = Object.fromEntries(b.income.map((i) => [i.accountId, String(i.budget || '')]));
-			dir = Object.fromEntries(b.units.flatMap((u) => u.items).map((i) => [i.id, { ok: i.directOk, limit: i.directLimit === null ? '' : String(i.directLimit) }]));
-			if (b.canEdit || b.canConfirm || auth.me?.access?.roles.some((r) => ['재정위원장', '담임목사', '감사', '열람', '재정 담당'].includes(r))) changes = (await auth.api<{ items: Chg[] }>('GET', '/budget-changes?year=' + year)).items;
+			// 화면이 반쯤 채워진 상태로 그려지지 않도록, 필요한 것을 모두 받은 뒤 한꺼번에 반영한다.
+			const nb = await auth.api<B>('GET', '/budget?year=' + year);
+			const nc = (await auth.api<{ items: Cat[] }>('GET', '/categories')).items;
+			const na = Object.fromEntries((await auth.api<{ items: { id: number; categoryIds: number[] }[] }>('GET', '/unit-categories?year=' + year)).items.map((u) => [u.id, u.categoryIds]));
+			const nch = nb.canEdit || nb.canConfirm || auth.me?.access?.roles.some((r) => ['재정위원장', '담임목사', '감사', '열람', '재정 담당'].includes(r)) ? (await auth.api<{ items: Chg[] }>('GET', '/budget-changes?year=' + year)).items : [];
+			if (nb.canEdit) await loadUncat();
+			cats = nc;
+			allowed = na;
+			incomeEdit = Object.fromEntries(nb.income.map((i) => [i.accountId, String(i.budget || '')]));
+			dir = Object.fromEntries(nb.units.flatMap((u) => u.items).map((i) => [i.id, { ok: i.directOk, limit: i.directLimit === null ? '' : String(i.directLimit) }]));
+			changes = nch;
+			add = Object.fromEntries(nb.units.map((u) => [u.id, add[u.id] ?? { name: '', amount: '', basis: '', categoryId: 0 }]));
+			b = nb;
 			err = '';
 		} catch (e) {
 			err = errText(e);
@@ -177,8 +183,8 @@
 					</tbody>
 				</table>
 			</div>
-			{#if b.canEdit && !confirmed && u.kind !== '위원회'}
-				{@const f = (add[u.id] ??= { name: '', amount: '', basis: '', categoryId: 0 })}
+			{#if b.canEdit && !confirmed && u.kind !== '위원회' && add[u.id]}
+				{@const f = add[u.id]}
 				<form class="row mt" style="flex-wrap:wrap" onsubmit={(e) => { e.preventDefault(); addItem(u); }}>
 					<input bind:value={f.name} placeholder="항목 이름" maxlength="60" style="max-width:12rem" required />
 					<input bind:value={f.amount} placeholder="예산 (원)" inputmode="numeric" style="max-width:9rem" />
