@@ -122,5 +122,5 @@ route('GET', '/admin/log', function () {
     $donor = ($_GET['kind'] ?? '') === 'donor';
     $where = $donor ? " WHERE action LIKE '개인별%' OR action LIKE '주민번호%' OR action LIKE '헌금자%'" : '';
     $items = rows('SELECT at, who, action, target, ip FROM ' . t('access_log') . $where . ' ORDER BY id DESC LIMIT 100');
-    json_out(['items' => array_map(fn($r) => ['at' => substr((string)$r['at'], 0, 16), 'who' => $r['who'], 'action' => $r['action'], 'target' => $r['target'], 'ip' => $r['ip']], $items)]);
+    json_out(['items' => array_map(fn($r) => ['at' => substr((string)$r['at'], 0, 16), 'who' => $r['who'], 'action' => $r['action'], 'target' => $r['target'], 'ip' => fm_demo_on() ? '(체험에서는 숨김)' : $r['ip']], $items)]);
 });
