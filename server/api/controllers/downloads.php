@@ -7,7 +7,7 @@ declare(strict_types=1);
 const FM_DL_PURPOSES = ['세무 신고', '감사 제출', '결산 보고', '백업 보관', '기타'];
 const FM_DL_TTL = 60;
 /** 내려받기 종류 → 사유 필수 여부. 개인 이름이 들어가는 자료(영수증 발급명세·백업)는 사유가 필수다. */
-const FM_DL_KINDS = ['receipts' => true, 'backup' => true, 'ledger' => false, 'settlement' => false];
+const FM_DL_KINDS = ['receipts' => true, 'backup' => true, 'ledger' => false, 'settlement' => false, 'spending' => false];
 
 route('POST', '/downloads/ticket', function () {
     $a = require_account();

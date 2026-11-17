@@ -185,6 +185,27 @@ function demo_seed(): void
         $direct[$n] = insert_id('INSERT INTO ' . t('budget_items') . ' (unit_id, name, amount, basis, direct_ok, direct_limit, sort_order) VALUES (?,?,?,?,?,?,?)', [$etc, $n, $amt, '체험용', $n === '사례비' ? 0 : 1, $n === '사례비' ? null : 1000000, count($direct) + 1]);
     }
     insert_id('INSERT INTO ' . t('budget_items') . ' (unit_id, name, amount, sort_order) VALUES (?,?,?,1)', [$reserve, '예비비', 5000000]);
+    // 지출 카테고리(가짜 예시)와 부서별 사용 카테고리, 예산 항목의 카테고리
+    seed_default_categories();
+    $cat2 = fn(string $n) => (int)val('SELECT c.id FROM ' . t('expense_categories') . ' c JOIN ' . t('expense_categories') . ' p ON p.id = c.parent_id WHERE c.name = ? AND p.parent_id IS NULL', [$n]);
+    $cat1 = fn(string $n) => (int)val('SELECT id FROM ' . t('expense_categories') . ' WHERE name = ? AND parent_id IS NULL', [$n]);
+    $kmap = [
+        '예배위원회' => ['관' => '예배비', '행사비' => '예배운영', '교육비' => '찬양', '운영비' => '예배운영'],
+        '교육위원회' => ['관' => '교육비', '행사비' => '행사', '교육비' => '부서운영', '운영비' => '부서운영'],
+        '선교위원회' => ['관' => '선교·전도비', '행사비' => '선교', '교육비' => '전도', '운영비' => '선교'],
+        '관리위원회' => ['관' => '관리비', '행사비' => '시설', '교육비' => '차량', '운영비' => '시설'],
+    ];
+    foreach ($depts as $d) {
+        $cn = (string)val('SELECT name FROM ' . t('units') . ' WHERE id = ?', [$d['parent']]);
+        $m = $kmap[$cn] ?? null;
+        if (!$m) continue;
+        foreach ($items[$d['id']] as $n => $iid) q('UPDATE ' . t('budget_items') . ' SET category_id = ? WHERE id = ?', [$cat2($m[$n] ?? '부서운영') ?: null, $iid]);
+        q('INSERT IGNORE INTO ' . t('unit_categories') . ' (unit_id, category_id) VALUES (?,?)', [$d['id'], $cat1($m['관'])]);
+        q('INSERT IGNORE INTO ' . t('unit_categories') . ' (unit_id, category_id) VALUES (?,?)', [$d['parent'], $cat1($m['관'])]);
+    }
+    foreach (['사례비' => '사례', '공과금' => '시설', '관리비' => '행정'] as $n => $cn) if (isset($direct[$n])) q('UPDATE ' . t('budget_items') . ' SET category_id = ? WHERE id = ?', [$cat2($cn) ?: null, $direct[$n]]);
+    q('UPDATE ' . t('budget_items') . ' SET category_id = ? WHERE unit_id = ?', [$cat2('예비비') ?: null, $reserve]);
+
     foreach ([$tithe => 90000000, $thanks => 12000000, $sun => 20000000, $mission => 8000000, $build => 6000000] as $ia => $amt) q('INSERT INTO ' . t('income_budgets') . ' (fiscal_year, income_account_id, amount) VALUES (?,?,?) ON DUPLICATE KEY UPDATE amount = VALUES(amount)', [$year, $ia, $amt]);
 
     // 헌금자(교인이 아닌 헌금자로 — 교적과 이어지지 않는다)

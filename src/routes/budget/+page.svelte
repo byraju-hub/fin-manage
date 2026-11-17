@@ -4,7 +4,7 @@
 	import { auth } from '#lib/auth.svelte.ts';
 	import { won, localDate, errText } from '#lib/fmt.ts';
 
-	type Item = { id: number; name: string; initial: number; budget: number; paid: number; pending: number; remain: number; rate: number; basis: string | null; nature: string | null; directOk: boolean; directLimit: number | null };
+	type Item = { id: number; name: string; initial: number; budget: number; paid: number; pending: number; remain: number; rate: number; basis: string | null; nature: string | null; categoryId: number | null; directOk: boolean; directLimit: number | null };
 	type U = { id: number; parentId: number | null; kind: string; name: string; items: Item[] };
 	type B = { year: number; status: string; confirmedOn: string | null; units: U[]; income: { accountId: number; name: string; budget: number; actual: number }[]; canEdit: boolean; canConfirm: boolean; isAdmin: boolean };
 	type Chg = { id: number; amount: number; reason: string; decidedOn: string | null; from: string | null; to: string | null; at: string };
@@ -16,7 +16,23 @@
 	let err = $state('');
 	let notice = $state('');
 	let busy = $state(false);
-	let add = $state<Record<number, { name: string; amount: string; basis: string }>>({});
+	let add = $state<Record<number, { name: string; amount: string; basis: string; categoryId: number }>>({});
+	type Cat = { id: number; parentId: number | null; name: string; level: number; active: boolean };
+	let cats = $state<Cat[]>([]);
+	let allowed = $state<Record<number, number[]>>({});
+	const catById = $derived(Object.fromEntries(cats.map((c) => [c.id, c])) as Record<number, Cat>);
+	/** '관 › 항 › 목' 이름 */
+	const catPath = (id: number | null): string => {
+		const out: string[] = [];
+		for (let c = id === null ? undefined : catById[id]; c; c = c.parentId === null ? undefined : catById[c.parentId]) out.unshift(c.name);
+		return out.join(' › ');
+	};
+	/** 이 부서가 예산 항목에 고를 수 있는 카테고리(맨 아래 단계). 부서에 지정한 것이 없으면 전체 */
+	const catChoices = (unitId: number): Cat[] => {
+		const ids = allowed[unitId] ?? [];
+		const inFamily = (c: Cat): boolean => ids.includes(c.id) || (c.parentId !== null && !!catById[c.parentId] && inFamily(catById[c.parentId]));
+		return cats.filter((c) => c.active && !cats.some((k) => k.parentId === c.id && k.active) && (!ids.length || inFamily(c)));
+	};
 	let incomeEdit = $state<Record<number, string>>({});
 	let confirmDate = $state(localDate());
 	let ch = $state({ fromItemId: 0, toItemId: 0, amount: '', reason: '', decidedOn: '' });
@@ -39,6 +55,8 @@
 	async function load() {
 		try {
 			b = await auth.api<B>('GET', '/budget?year=' + year);
+			cats = (await auth.api<{ items: Cat[] }>('GET', '/categories')).items;
+			allowed = Object.fromEntries((await auth.api<{ items: { id: number; categoryIds: number[] }[] }>('GET', '/unit-categories?year=' + year)).items.map((u) => [u.id, u.categoryIds]));
 			incomeEdit = Object.fromEntries(b.income.map((i) => [i.accountId, String(i.budget || '')]));
 			dir = Object.fromEntries(b.units.flatMap((u) => u.items).map((i) => [i.id, { ok: i.directOk, limit: i.directLimit === null ? '' : String(i.directLimit) }]));
 			if (b.canEdit || b.canConfirm || auth.me?.access?.roles.some((r) => ['재정위원장', '담임목사', '감사', '열람', '재정 담당'].includes(r))) changes = (await auth.api<{ items: Chg[] }>('GET', '/budget-changes?year=' + year)).items;
@@ -69,7 +87,7 @@
 	async function addItem(u: U) {
 		const f = add[u.id];
 		if (!f?.name) return;
-		if (await run(() => auth.api('POST', '/budget-items', { unitId: u.id, name: f.name, amount: num(f.amount), basis: f.basis }), '예산 항목을 추가했어요.')) add[u.id] = { name: '', amount: '', basis: '' };
+		if (await run(() => auth.api('POST', '/budget-items', { unitId: u.id, name: f.name, amount: num(f.amount), basis: f.basis, categoryId: f.categoryId || null }), '예산 항목을 추가했어요.')) add[u.id] = { name: '', amount: '', basis: '', categoryId: 0 };
 	}
 	const editAmount = (i: Item) => {
 		const v = prompt(`'${i.name}' 예산 금액(원)`, String(i.initial));
@@ -112,7 +130,7 @@
 					<tbody>
 						{#each u.items as i (i.id)}
 							<tr>
-								<td>{i.name}{#if i.basis}<small class="muted"> {i.basis}</small>{/if}{#if i.directOk}<span class="tag now" title="직접 지출 허용{i.directLimit ? ' (건당 ' + won(i.directLimit) + '원)' : ''}">직접</span>{/if}</td>
+								<td>{i.name}{#if i.categoryId}<small class="muted"> · {catPath(i.categoryId)}</small>{/if}{#if i.basis}<small class="muted"> {i.basis}</small>{/if}{#if i.directOk}<span class="tag now" title="직접 지출 허용{i.directLimit ? ' (건당 ' + won(i.directLimit) + '원)' : ''}">직접</span>{/if}</td>
 								<td class="right">{won(i.budget)}{#if i.budget !== i.initial}<small class="muted"> (처음 {won(i.initial)})</small>{/if}</td>
 								<td class="right money">{won(i.paid)}</td><td class="right">{won(i.pending)}</td><td class="right {i.remain < 0 ? 'neg' : ''}">{won(i.remain)}</td><td class="right">{i.rate}</td>
 								<td class="right">{#if b.canEdit && !confirmed}<button class="ghost sm" type="button" disabled={busy} onclick={() => editAmount(i)}>금액</button> <button class="ghost sm" type="button" disabled={busy} onclick={() => delItem(i)}>삭제</button>{/if}</td>
@@ -130,11 +148,12 @@
 				</table>
 			</div>
 			{#if b.canEdit && !confirmed && u.kind !== '위원회'}
-				{@const f = (add[u.id] ??= { name: '', amount: '', basis: '' })}
+				{@const f = (add[u.id] ??= { name: '', amount: '', basis: '', categoryId: 0 })}
 				<form class="row mt" style="flex-wrap:wrap" onsubmit={(e) => { e.preventDefault(); addItem(u); }}>
 					<input bind:value={f.name} placeholder="항목 이름" maxlength="60" style="max-width:12rem" required />
 					<input bind:value={f.amount} placeholder="예산 (원)" inputmode="numeric" style="max-width:9rem" />
 					<input bind:value={f.basis} placeholder="산출 근거 (선택)" maxlength="255" style="max-width:14rem" />
+					{#if cats.length}<select bind:value={f.categoryId} style="max-width:14rem" aria-label="카테고리" required={(allowed[u.id] ?? []).length > 0}><option value={0}>카테고리 선택{(allowed[u.id] ?? []).length ? '' : ' (선택)'}</option>{#each catChoices(u.id) as c}<option value={c.id}>{catPath(c.id)}</option>{/each}</select>{/if}
 					<button class="sm" type="submit" disabled={busy}>항목 추가</button>
 				</form>
 			{/if}

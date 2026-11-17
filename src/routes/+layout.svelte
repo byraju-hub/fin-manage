@@ -68,13 +68,14 @@
 		add('헌금', [canOffer && { to: '/offerings', label: '헌금 입력', hint: '묶음·빠른 입력·대조·마감' }, canReport && { to: '/pledges', label: '작정헌금', hint: '작정·이행률·남은 금액' }, isStaff && { to: '/receipts', label: '기부금 영수증', hint: '연말 발급·발급 대장' }]);
 		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }]);
 		add('장부', [canLedger && { to: '/ledger', label: '장부', hint: '수입·지출·이체·계좌 잔액' }, canBudget && { to: '/budget', label: '예산', hint: '편성·확정·추경·집행' }, canLedger && { to: '/closing', label: '마감', hint: '월 마감·연 마감·이월' }]);
-		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '주간·월·집행·결산' }, canReport && { to: '/reports/groups', label: '교구별 헌금', hint: '모임별 합계(개인별 금액 없음)' }], true);
+		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '주간·월·집행·결산' }, canReport && { to: '/reports/groups', label: '교구별 헌금', hint: '모임별 합계(개인별 금액 없음)' }, canBudget && { to: '/reports/spending', label: '부서별 지출', hint: '위원회·부서 × 카테고리' }], true);
 		add('설정', [
 			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
 			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
 			isStaff && !demo && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
 			isAdmin && { to: '/admin/users', label: '재정 사용 승인', hint: '신청 승인·역할·열람 지정' },
 			isAdmin && { to: '/admin/church', label: '교회 정보·영수증·보안', hint: '고유번호·직인·서식·주민번호 방식' },
+			isAdmin && { to: '/admin/categories', label: '지출 카테고리', hint: '관·항·목 · 부서별 사용 카테고리' },
 			isAdmin && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' },
 			isAdmin && { to: '/admin/backup', label: '백업', hint: '내려받기·되살리기' }
 		]);

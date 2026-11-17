@@ -17,6 +17,23 @@
 	let busy = $state(false);
 	let newName = $state('');
 	let newKind = $state('부서');
+	let bulkText = $state('');
+	async function bulkAdd() {
+		if (!bulkText.trim()) return;
+		busy = true;
+		err = '';
+		notice = '';
+		try {
+			const r = await auth.api<{ committees: number; depts: number; skipped: number }>('POST', '/units/bulk', { year, text: bulkText });
+			notice = `위원회 ${r.committees}곳, 부서 ${r.depts}곳을 추가했어요.` + (r.skipped ? ` (이미 있어서 건너뜀 ${r.skipped}곳)` : '');
+			bulkText = '';
+			await load();
+		} catch (e) {
+			err = e instanceof Error ? e.message : '추가하지 못했습니다.';
+		} finally {
+			busy = false;
+		}
+	}
 	const canEdit = $derived(!!auth.me?.access?.isAdmin || !!auth.me?.access?.roles.includes('재정 담당'));
 
 	const cur = $derived(years.find((y) => y.year === year));
@@ -133,6 +150,15 @@
 				{/if}
 			</div>
 		</div>
+	{/if}
+
+	{#if canEdit && !closed}
+		<details class="card">
+			<summary style="cursor:pointer"><b>조직도 한꺼번에 추가</b> <span class="muted fs-s">위원회와 부서를 글로 적어 넣기</span></summary>
+			<p class="fs-s muted">한 줄에 위원회 하나. 부서는 콜론 뒤에 쉼표로 적거나, 다음 줄에 '- 부서'로 적습니다. 이미 있는 이름은 건너뜁니다. 교적 조직표가 없는 교회나 처음 만들 때 편해요.</p>
+			<textarea rows="6" bind:value={bulkText} placeholder={'예배위원회: 예배부, 찬양대\n교육위원회\n- 유치부\n- 청년부'}></textarea>
+			<div class="row mt" style="justify-content:flex-end"><button type="button" disabled={busy || !bulkText.trim()} onclick={bulkAdd}>추가</button></div>
+		</details>
 	{/if}
 
 	<div class="two two-l">

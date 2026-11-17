@@ -2,7 +2,7 @@
 import { auth } from '#lib/auth.svelte.ts';
 
 export const PURPOSES = ['세무 신고', '감사 제출', '결산 보고', '백업 보관', '기타'];
-export type DlKind = 'receipts' | 'backup' | 'ledger' | 'settlement';
+export type DlKind = 'receipts' | 'backup' | 'ledger' | 'settlement' | 'spending';
 
 type Pending = { kind: DlKind; label: string; required: boolean; resolve: (r: { purpose: string; note: string } | null) => void };
 
@@ -22,7 +22,7 @@ class Dl {
 }
 export const dl = new Dl();
 
-const REQUIRED: Record<DlKind, boolean> = { receipts: true, backup: true, ledger: false, settlement: false };
+const REQUIRED: Record<DlKind, boolean> = { receipts: true, backup: true, ledger: false, settlement: false, spending: false };
 
 /** 사유를 묻고 열쇠를 받아 돌려준다. 취소하면 null. */
 export async function dlTicket(kind: DlKind, label: string): Promise<string | null> {

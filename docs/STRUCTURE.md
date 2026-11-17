@@ -1,6 +1,6 @@
 # 재정 관리(fin-manage) 한눈에 보는 구조
 
-> 2026-11-17 기준, v0.2.0 (DB 구조 번호 6, 마이그레이션 001~006). 더 자세한 기술 설명은 `ARCHITECTURE.md`, 쓰는 방법은 `manual.md`.
+> 2026-11-17 기준, v0.2.0 (DB 구조 번호 7, 마이그레이션 001~007). 더 자세한 기술 설명은 `ARCHITECTURE.md`, 쓰는 방법은 `manual.md`.
 
 ## 1. 한 장 그림
 
@@ -17,7 +17,7 @@
 | API | 프레임워크 없는 PHP 8 | 권한 확인, 결재 규칙, 마감, 금액 계산 (**모든 규칙은 여기서**) |
 | 자료 | MariaDB `fm_*` | 금액은 원(정수). 지우지 않고 취소로 남김 |
 | 교적 연결 | `cm_*`를 읽기만 | 로그인·교인 이름·조직 불러오기 |
-| 설치 | `/install/` 마법사 | 설치·업데이트(DB 변경은 번호 붙은 마이그레이션 001~006) |
+| 설치 | `/install/` 마법사 | 설치·업데이트(DB 변경은 번호 붙은 마이그레이션 001~007) |
 
 ## 2. 누가 무엇을 하나 (권한)
 
@@ -42,7 +42,7 @@
 헌금 ▾          헌금 입력(묶음·빠른 입력·계수 대조·마감) · 작정헌금 · 기부금 영수증
 지출 ▾          지출결의서 · 결재함
 장부 ▾          장부(수입·지출·이체·잔액) · 예산 · 마감(월/연)
-보고서 ▾        주간 보고 · 주보 명단 · 월 보고 · 집행 현황 · 결산서 · 교구별 헌금
+보고서 ▾        주간 보고 · 주보 명단 · 월 보고 · 집행 현황 · 결산서 · 교구별 헌금 · 부서별 지출
 설정 ▾          재정 단위·담당자 · 기준 자료 · 기존 자료 가져오기 ·
                 (관리자) 사용 승인 · 교회 정보 · 결재 규칙 · 백업·샘플
 바로가기 ▾      교적 관리 (· 부서 관리: 보류)
@@ -75,7 +75,7 @@
 | 사람 | `access` `access_roles`(사용 승인·역할) `donors`(헌금자·합산 대상·주민번호 암호화) |
 | 헌금 | `offering_batches` `offerings` `pledges`(작정헌금) |
 | 장부 | `transactions` `transaction_files` `closings` |
-| 예산 | `budget_items` `income_budgets` `budget_changes` |
+| 예산 | `budget_items` `income_budgets` `budget_changes` `expense_categories`(관·항·목) `unit_categories`(부서별 사용 카테고리) |
 | 지출 | `vouchers` `voucher_items` `voucher_files` `approval_steps` `approval_rules`(금액 구간) |
 | 영수증 | `receipts` `donor_consents`(교인이 아닌 헌금자 동의) |
 | 기록 | `access_log` `change_log` `login_attempts` (화면에서 못 지움) |

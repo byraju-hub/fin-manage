@@ -201,6 +201,9 @@ route('POST', '/units/copy-year', function () {
                 q('INSERT INTO ' . t('unit_roles') . ' (unit_id, role, person_id, person_name, sort_order) VALUES (?,?,?,?,?)', [$map[(int)$u['id']], $r['role'], $r['person_id'], $r['person_name'], $r['sort_order']]);
             }
         }
+        foreach ($units as $u) {
+            foreach (rows('SELECT category_id FROM ' . t('unit_categories') . ' WHERE unit_id = ?', [$u['id']]) as $c) q('INSERT INTO ' . t('unit_categories') . ' (unit_id, category_id) VALUES (?,?)', [$map[(int)$u['id']], $c['category_id']]);
+        }
         ensure_special_units($to);
         return count($units);
     });
@@ -223,6 +226,54 @@ route('POST', '/units', function () {
     );
     change_log('unit', $id, 'create', null, $name);
     json_out(['id' => $id]);
+});
+
+/**
+ * 조직도 한꺼번에 추가: 한 줄에 위원회 하나. 부서는 콜론 뒤에 쉼표로 적거나, 다음 줄에 '- 부서' 로 적는다.
+ *   공동체위원회: 열매공동체, 줄기공동체
+ *   기획위원회
+ *   - 사역기획부
+ * 이미 있는 이름은 건너뛰고, 없는 것만 만든다.
+ */
+route('POST', '/units/bulk', function () {
+    require_staff();
+    $b = body();
+    $year = in_int($b, 'year', 2000, 2100, '연도');
+    require_year_open($year);
+    $text = (string)($b['text'] ?? '');
+    $lines = preg_split('/\r\n|\r|\n/', $text) ?: [];
+    if (count($lines) > 300 || mb_strlen($text) > 12000) json_fail('invalid', '한 번에 넣을 수 있는 양을 넘었습니다.', 422);
+    $res = tx(function () use ($lines, $year) {
+        $made = ['committees' => 0, 'depts' => 0, 'skipped' => 0];
+        $cur = null;
+        $sort = (int)val('SELECT COALESCE(MAX(sort_order),0) FROM ' . t('units') . ' WHERE fiscal_year = ? AND sort_order < 9000', [$year]);
+        $ensure = function (string $name, ?int $parent, string $kind) use ($year, &$sort, &$made): int {
+            $name = trim($name);
+            if ($name === '' || mb_strlen($name) > 60) json_fail('invalid', "이름이 올바르지 않습니다: {$name}", 422);
+            $id = val('SELECT id FROM ' . t('units') . ' WHERE fiscal_year = ? AND name = ? AND parent_id <=> ?', [$year, $name, $parent]);
+            if ($id) { $made['skipped']++; return (int)$id; }
+            $sort++;
+            $new = insert_id('INSERT INTO ' . t('units') . ' (fiscal_year, parent_id, kind, name, sort_order) VALUES (?,?,?,?,?)', [$year, $parent, $kind, $name, $sort]);
+            $made[$kind === '위원회' ? 'committees' : 'depts']++;
+            return $new;
+        };
+        foreach ($lines as $raw) {
+            $line = rtrim($raw);
+            if (trim($line) === '') continue;
+            if (preg_match('/^\s*[-·•]\s*(.+)$/u', $line, $m) || (preg_match('/^\s+(\S.*)$/u', $line, $m) && $cur !== null)) {
+                if ($cur === null) json_fail('invalid', '부서 앞에 위원회가 먼저 있어야 해요: ' . trim($line), 422);
+                $ensure($m[1], $cur, '부서');
+                continue;
+            }
+            $parts = preg_split('/[:：]/u', trim($line), 2);
+            $cur = $ensure($parts[0], null, '위원회');
+            if (isset($parts[1])) foreach (preg_split('/[,、，\/]/u', $parts[1]) as $d) if (trim($d) !== '') $ensure($d, $cur, '부서');
+        }
+        ensure_special_units($year);
+        return $made;
+    });
+    change_log('units', $year, 'bulk', null, $res['committees'] . '+' . $res['depts']);
+    json_out($res);
 });
 
 route('POST', '/units/{id}', function (int $id) {

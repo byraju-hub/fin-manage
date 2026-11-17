@@ -60,7 +60,7 @@ function budget_units(int $year, array $a): array
         $pend = $st['pending'][$id] ?? 0;
         $by[(int)$i['unit_id']][] = [
             'id' => $id, 'name' => $i['name'], 'initial' => (int)$i['amount'], 'budget' => $cur, 'paid' => $paid, 'pending' => $pend, 'remain' => $cur - $paid - $pend,
-            'rate' => $cur > 0 ? (int)round($paid * 100 / $cur) : 0, 'basis' => $i['basis'], 'nature' => $i['nature'], 'directOk' => (int)$i['direct_ok'] === 1, 'directLimit' => $i['direct_limit'] === null ? null : (int)$i['direct_limit'],
+            'rate' => $cur > 0 ? (int)round($paid * 100 / $cur) : 0, 'basis' => $i['basis'], 'nature' => $i['nature'], 'categoryId' => $i['category_id'] === null ? null : (int)$i['category_id'], 'directOk' => (int)$i['direct_ok'] === 1, 'directLimit' => $i['direct_limit'] === null ? null : (int)$i['direct_limit'],
         ];
     }
     return array_map(fn($u) => ['id' => (int)$u['id'], 'parentId' => $u['parent_id'] === null ? null : (int)$u['parent_id'], 'kind' => $u['kind'], 'name' => $u['name'], 'items' => $by[(int)$u['id']] ?? []], $units);
@@ -103,10 +103,12 @@ route('POST', '/budget-items', function () {
     $unit = in_int($b, 'unitId', 1, PHP_INT_MAX, '재정 단위');
     budget_edit_guard(unit_year($unit));
     $name = in_str($b, 'name', 60, true, '항목 이름');
+    $cat = isset($b['categoryId']) && $b['categoryId'] !== null && $b['categoryId'] !== '' && (int)$b['categoryId'] > 0 ? in_int($b, 'categoryId', 1, PHP_INT_MAX, '카테고리') : null;
+    unit_category_ok($unit, $cat);
     if (val('SELECT COUNT(*) FROM ' . t('budget_items') . ' WHERE unit_id = ? AND name = ? AND is_active = 1', [$unit, $name])) json_fail('duplicate', '같은 이름의 예산 항목이 있습니다.', 409);
     $id = insert_id(
-        'INSERT INTO ' . t('budget_items') . ' (unit_id, name, amount, basis, nature, sort_order) VALUES (?,?,?,?,?,?)',
-        [$unit, $name, in_int($b, 'amount', 0, 9_000_000_000_000, '예산 금액'), in_str($b, 'basis', 255) ?: null, in_str($b, 'nature', 20) ?: null, (int)val('SELECT COALESCE(MAX(sort_order),0)+1 FROM ' . t('budget_items') . ' WHERE unit_id = ?', [$unit])]
+        'INSERT INTO ' . t('budget_items') . ' (unit_id, name, amount, basis, nature, category_id, sort_order) VALUES (?,?,?,?,?,?,?)',
+        [$unit, $name, in_int($b, 'amount', 0, 9_000_000_000_000, '예산 금액'), in_str($b, 'basis', 255) ?: null, in_str($b, 'nature', 20) ?: null, $cat, (int)val('SELECT COALESCE(MAX(sort_order),0)+1 FROM ' . t('budget_items') . ' WHERE unit_id = ?', [$unit])]
     );
     change_log('budget_item', $id, 'create', null, $name . ' ' . ($b['amount'] ?? 0));
     json_out(['id' => $id]);
@@ -122,7 +124,13 @@ route('POST', '/budget-items/{id}', function (int $id) {
     $amount = array_key_exists('amount', $b) ? in_int($b, 'amount', 0, 9_000_000_000_000, '예산 금액') : (int)$cur['amount'];
     $basis = array_key_exists('basis', $b) ? in_str($b, 'basis', 255) : (string)$cur['basis'];
     $nature = array_key_exists('nature', $b) ? in_str($b, 'nature', 20) : (string)$cur['nature'];
-    q('UPDATE ' . t('budget_items') . ' SET name=?, amount=?, basis=?, nature=? WHERE id=?', [$name, $amount, $basis ?: null, $nature ?: null, $id]);
+    $cat = $cur['category_id'] === null ? null : (int)$cur['category_id'];
+    if (array_key_exists('categoryId', $b)) {
+        $cat = $b['categoryId'] === null || $b['categoryId'] === '' || (int)$b['categoryId'] <= 0 ? null : in_int($b, 'categoryId', 1, PHP_INT_MAX, '카테고리');
+        if ($cat !== ($cur['category_id'] === null ? null : (int)$cur['category_id'])) unit_category_ok((int)$cur['unit_id'], $cat);
+    }
+    q('UPDATE ' . t('budget_items') . ' SET name=?, amount=?, basis=?, nature=?, category_id=? WHERE id=?', [$name, $amount, $basis ?: null, $nature ?: null, $cat, $id]);
+    if ($cat !== ($cur['category_id'] === null ? null : (int)$cur['category_id'])) change_log('budget_item', $id, 'category', $cur['category_id'], $cat);
     if ($amount !== (int)$cur['amount']) change_log('budget_item', $id, 'amount', $cur['amount'], $amount);
     json_out(null);
 });
