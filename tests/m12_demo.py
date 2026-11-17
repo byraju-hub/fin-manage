@@ -63,8 +63,13 @@ for method, path, body in (('POST', '/funds', {'name': 'x'}), ('POST', '/offerin
     except Exception as e:  # PUT/DELETE 가 라우터에 없어도 서버가 막아야 한다
         s, j = 0, {}
     check(f'체험: {method} {path} → 403 demo_readonly', s == 403 and code(j) == 'demo_readonly' and '보기만' in j['error']['message'], (s, j))
-for path in ('/admin/access', '/admin/sample', '/backup/info', '/backup/download', '/settings', '/export/ledger?year=%d' % Y, '/receipts-export?year=%d' % Y, '/import/offerings/pending', '/delegations'):
+for path in ('/backup/download', '/settings/seal', '/export/ledger?year=%d' % Y, '/receipts-export?year=%d' % Y):
     s, j = d.call('GET', path); check('체험: 민감한 화면 ' + path.split('?')[0] + ' 막힘', s == 403 and code(j) == 'demo_blocked', (s, j))
+s, j = d.call('GET', '/admin/access'); check('체험: 재정 사용 승인 화면은 가짜 사용자로 볼 수 있음', s == 200 and len(j['data']['items']) >= 5 and all(i['loginId'].startswith('demo') for i in j['data']['items']), (s, j))
+for path in ('/admin/sample', '/backup/info', '/settings', '/settings/ocr', '/import/offerings/pending', '/delegations', '/approval-rules', '/admin/log'):
+    s, j = d.call('GET', path); check('체험: 설정 화면 ' + path + ' 보기 가능', s == 200, (s, j))
+s, j = d.call('GET', '/settings'); check('체험: 교회 정보는 가짜 값(체험교회), 직인 없음', j['data']['church'].get('name') == '체험교회' and j['data']['hasSeal'] is False, j)
+s, j = stf.call('GET', '/admin/access'); check('일반 재정 담당은 여전히 재정 사용 승인 화면 못 엶', s == 403, (s, j))
 check('체험 요청은 진짜 접속 기록(fm_access_log)에 아무것도 남기지 않음', sql("select count(*) from fm_access_log") == before_log, (before_log, sql("select count(*) from fm_access_log")))
 check('체험 로그인은 진짜 사용 승인 표에 기록을 만들지 않음', sql("select count(*) from fm_access where login_id='t_demo'") == '0')
 s, j = d.call('POST', '/auth/logout', {}); check('로그아웃은 가능', s == 200, j)

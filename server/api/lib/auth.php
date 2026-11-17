@@ -148,7 +148,8 @@ function has_role(array $a, string ...$roles): bool
 function require_admin(): array
 {
     $a = require_account();
-    if (!is_admin_account($a)) json_fail('forbidden', '재정 관리자만 할 수 있습니다.', 403);
+    // 체험 계정은 설정 화면을 '보기만' 할 수 있다(쓰기는 demo_guard 가 막고, 읽는 표는 가짜 자료 표다).
+    if (!is_admin_account($a) && !(!empty($a['demo']) && !is_unsafe_method())) json_fail('forbidden', '재정 관리자만 할 수 있습니다.', 403);
     return $a;
 }
 

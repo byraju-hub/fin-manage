@@ -55,7 +55,12 @@ function demo_tables_match(): bool
     $st->execute([$like(fm_demo_prefix())]);
     $d = (int)$st->fetchColumn();
     $st->execute([$like((string)fm_config()['prefix'])]);
-    return $d === (int)$st->fetchColumn() - 1; // 접속 시도 표(login_attempts)는 체험에 없음
+    if ($d !== (int)$st->fetchColumn() - 1) return false; // 접속 시도 표(login_attempts)는 체험에 없음
+    try {
+        return (int)db()->query('SELECT COUNT(*) FROM `' . fm_demo_prefix() . 'access`')->fetchColumn() >= 5; // 가짜 사용자 자료가 없는 옛 체험 표는 새로 만든다
+    } catch (Throwable) {
+        return false;
+    }
 }
 
 function demo_ensure(): void
@@ -143,6 +148,12 @@ function demo_seed(): void
         ('일반', '일반', 100001, 500000, '[{\"role\":\"부서장\",\"mode\":\"결재\"},{\"role\":\"위원장\",\"mode\":\"결재\"},{\"role\":\"재정위원장\",\"mode\":\"결재\"}]', '{\"over_budget\":\"담임목사\"}', 2),
         ('일반', '고액', 500001, NULL, '[{\"role\":\"부서장\",\"mode\":\"결재\"},{\"role\":\"위원장\",\"mode\":\"결재\"},{\"role\":\"재정위원장\",\"mode\":\"결재\"},{\"role\":\"담임목사\",\"mode\":\"결재\"}]', '{}', 3)");
     q('INSERT INTO `' . $p . "access` (id, cm_user_id, login_id, name, status, is_admin) VALUES (1, 0, 'demo', '체험 사용자', '사용', 0)");
+    // 설정 › 재정 사용 승인 화면 구경용 가짜 사용자(실제 계정·교인과 무관)
+    $fake = [[2, '가온', '체험 재정 담당', '사용', 0, ['재정 담당']], [3, '나래', '체험 재정위원장', '사용', 0, ['재정위원장']], [4, '다솜', '체험 감사', '사용', 0, ['감사']], [5, '라온', '체험 신청자', '신청 대기', 0, []]];
+    foreach ($fake as [$id, $login, $name, $status, $adm, $roles]) {
+        q('INSERT INTO `' . $p . 'access` (id, cm_user_id, login_id, name, status, is_admin, reason) VALUES (?,?,?,?,?,?,?)', [$id, 900000 + $id, 'demo_' . $login, $name, $status, $adm, $status === '신청 대기' ? '체험용 신청입니다' : '']);
+        foreach ($roles as $r) q('INSERT INTO `' . $p . 'access_roles` (access_id, role) VALUES (?,?)', [$id, $r]);
+    }
     q('INSERT INTO `' . $p . 'fiscal_years` (year, start_date, end_date, status, budget_confirmed_on) VALUES (?,?,?,?,?)', [$year, "$year-01-01", "$year-12-31", '진행', "$year-01-05"]);
     q('INSERT INTO `' . $p . 'fiscal_years` (year, start_date, end_date, status) VALUES (?,?,?,?)', [$prior, "$prior-01-01", "$prior-12-31", '편성 중']);
     $cash = insert_id('INSERT INTO ' . t('wallets') . ' (fund_id, name, kind, opening_balance, sort_order) VALUES (1, ?, ?, ?, 1)', ['현금', '현금', 0]);
@@ -290,7 +301,7 @@ function demo_guard(string $path): void
         if ($path === '/auth/logout') return;
         json_fail('demo_readonly', '체험 계정은 보기만 할 수 있어요. 저장하거나 바꿀 수는 없어요.', 403);
     }
-    foreach (['/admin', '/backup', '/import', '/export', '/receipts-export', '/settings', '/delegations', '/voucher-files', '/transaction-files'] as $prefix) {
+    foreach (['/backup/download', '/settings/seal', '/export', '/receipts-export', '/voucher-files', '/transaction-files'] as $prefix) {
         if ($path === $prefix || str_starts_with($path, $prefix . '/')) json_fail('demo_blocked', '체험 계정에서는 이 화면을 열 수 없어요.', 403);
     }
 }
