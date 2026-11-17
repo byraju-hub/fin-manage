@@ -214,6 +214,12 @@ function demo_seed(): void
         $mk($d->format('Y-m-d'), $prior, array_slice($donors, 0, 24));
     }
 
+    // 개인정보 동의(가짜): 대부분 동의, 일부는 없음·철회
+    foreach ($donors as $i => $dn) {
+        if ($i % 7 === 0) continue;
+        q('INSERT INTO ' . t('donor_consents') . ' (donor_id, policy_version, consent_date, method, revoked_on, created_by) VALUES (?,?,?,?,?,1)', [$dn['id'], FM_POLICY_VERSION, date('Y-m-d', strtotime('-' . (30 + $i * 3) . ' days')), $i % 2 ? '서면' : '구두', $i % 11 === 0 ? date('Y-m-d', strtotime('-5 days')) : null]);
+    }
+
     // 작정헌금(가짜): 건축·선교헌금을 작정한 헌금자 몇 명
     foreach (array_slice($donors, 0, 12) as $i => $dn) {
         $ac = $i % 2 === 0 ? $build : $mission;

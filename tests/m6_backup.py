@@ -9,12 +9,14 @@ PW = 'testpass1234'
 s, j = stf.call('GET', '/backup/info'); check('관리자가 아니면 백업 정보 못 봄', s == 403)
 s, j = adm.call('GET', '/backup/info'); check('백업 정보(표별 건수)', s == 200 and 'funds' in j['data']['tables'], j)
 try:
-    adm.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/backup/download')); check('비밀번호 재확인 없이는 내려받기 불가', False)
+    tk0 = adm.call('POST', '/downloads/ticket', {'kind': 'backup', 'purpose': '백업 보관'})[1]['data']['token']
+    adm.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/backup/download?dl=' + tk0)); check('비밀번호 재확인 없이는 내려받기 불가', False)
 except urllib.error.HTTPError as e:
     check('비밀번호 재확인 없이는 내려받기 불가', e.code == 403)
 adm.call('POST', '/auth/reconfirm', {'password': PW})
 stf.call('POST', '/funds', {'name': '시험회계'})
-raw = adm.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/backup/download')).read().decode('utf-8')
+tk1 = adm.call('POST', '/downloads/ticket', {'kind': 'backup', 'purpose': '백업 보관'})[1]['data']['token']
+raw = adm.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/backup/download?dl=' + tk1)).read().decode('utf-8')
 d = json.loads(raw)
 check('백업 파일 형식과 내용(시험회계 포함, 열쇠·교적 자료 없음)', d['format'] == 'fin-manage-backup' and any(f['name'] == '시험회계' for f in d['tables']['funds']) and 'login_attempts' not in d['tables'] and 'rrn_key' not in raw)
 sql("delete from fm_funds where name='시험회계'")

@@ -1,6 +1,7 @@
 <script lang="ts">
 	// 백업·되살리기 (재정 관리자). 재정 자료(fm_ 표)만. 증빙 사진·교적·암호화 열쇠는 백업에 들어가지 않는다.
 	import { onMount } from 'svelte';
+	import { dlTicket } from '#lib/download.svelte.ts';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { hrefTo } from '#lib/paths.ts';
 	import { errText } from '#lib/fmt.ts';
@@ -51,8 +52,10 @@
 		busy = true;
 		err = '';
 		try {
+			const tok = await dlTicket('backup', '백업 파일');
+			if (!tok) return;
 			const res = await auth.guard(async () => {
-				const r = await fetch(hrefTo('/api/v1/backup/download'), { credentials: 'same-origin' });
+				const r = await fetch(hrefTo('/api/v1/backup/download') + '?dl=' + tok, { credentials: 'same-origin' });
 				if (!r.ok) {
 					const j = await r.json().catch(() => null);
 					const { ApiError } = await import('#lib/auth.svelte.ts');

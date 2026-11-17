@@ -16,7 +16,8 @@ class Client:
         req = urllib.request.Request(A + path, json.dumps(body).encode() if body is not None else None, h, method=method)
         try: r = s.op.open(req); status = r.status; data = r.read()
         except urllib.error.HTTPError as e: status = e.code; data = e.read()
-        j = json.loads(data)
+        try: j = json.loads(data)
+        except ValueError: j = {'ok': True, 'raw': data.decode('utf-8', 'replace')}  # 파일(CSV 등) 응답
         if path in ('/auth/me', '/auth/login') and j.get('ok'): s.csrf = j['data']['csrf']
         return status, j
     def login(s, user, pw=PW):

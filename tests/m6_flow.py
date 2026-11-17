@@ -67,10 +67,12 @@ s, j = stf.call('POST', '/transactions', {'kind': '수입', 'date': '2098-12-30'
 s, j = vw.call('GET', f'/reports/settlement?year={Y}'); d = j['data'] if s == 200 else {}
 check('결산서: 수입 결산 300,007, 지출 100,000', s == 200 and sum(i['actual'] for i in d['income']) == 300007 and sum(i['actual'] for u in d['expense'] for i in u['items']) == 100000, d)
 for path, who in (('/export/settlement?year=%d' % Y, vw), ('/export/ledger?year=%d' % Y, stf)):
-    r = who.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1' + path)); txt = r.read().decode('utf-8-sig')
+    tk = who.call('POST', '/downloads/ticket', {'kind': 'settlement' if 'settlement' in path else 'ledger'})[1]['data']['token']
+    r = who.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1' + path + '&dl=' + tk)); txt = r.read().decode('utf-8-sig')
     check('CSV 내려받기 ' + path.split('?')[0], r.status == 200 and ('시험' in txt or '수입' in txt) and 'text/csv' in r.headers['Content-Type'], txt[:200])
 try:
-    vw.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/export/ledger?year=%d' % Y)); check('열람 역할은 장부 내려받기 불가', False)
+    tk = vw.call('POST', '/downloads/ticket', {'kind': 'ledger'})[1]['data']['token']
+    vw.op.open(urllib.request.Request('http://127.0.0.1:8091/api/v1/export/ledger?year=%d&dl=%s' % (Y, tk))); check('열람 역할은 장부 내려받기 불가', False)
 except urllib.error.HTTPError as e:
     check('열람 역할은 장부 내려받기 불가', e.code == 403)
 

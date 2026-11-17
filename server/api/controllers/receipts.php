@@ -129,9 +129,15 @@ route('GET', '/donors/{id}/household', function (int $id) {
 /** 과세 연도(1.1~12.31)의 영수증 대상 합계: 대표 헌금자별(가족 합산 포함) */
 function receipt_groups(int $year): array
 {
+    return receipt_groups_range("$year-01-01", "$year-12-31");
+}
+
+/** 기간(날짜 범위)의 영수증 대상 합계. 연도 조회와 기간 조회가 같은 계산을 쓴다. */
+function receipt_groups_range(string $from, string $to): array
+{
     $r = rows('SELECT COALESCE(d.receipt_to_donor_id, d.id) AS target, d.id AS did, d.name AS dname, MONTH(o.offering_date) AS m, SUM(o.amount) AS s
                FROM ' . t('offerings') . ' o JOIN ' . t('offering_batches') . " b ON b.id = o.batch_id AND b.status = '마감' JOIN " . t('income_accounts') . ' ia ON ia.id = o.income_account_id AND ia.receiptable = 1
-               JOIN ' . t('donors') . ' d ON d.id = o.donor_id WHERE o.offering_date BETWEEN ? AND ? GROUP BY target, d.id, d.name, m', ["$year-01-01", "$year-12-31"]);
+               JOIN ' . t('donors') . ' d ON d.id = o.donor_id WHERE o.offering_date BETWEEN ? AND ? GROUP BY target, d.id, d.name, m', [$from, $to]);
     $g = [];
     foreach ($r as $x) {
         $t = (int)$x['target'];
@@ -246,6 +252,7 @@ route('GET', '/receipts/{id}', function (int $id) {
 route('GET', '/receipts-export', function () {
     $a = require_receipt_staff();
     $year = in_int($_GET, 'year', 2000, 2100, '과세 연도');
+    $why = dl_take('receipts');
     $r = rows('SELECT r.doc_no, r.total, r.issued_at, r.snapshot FROM ' . t('receipts') . ' r WHERE r.tax_year = ? AND r.voided_at IS NULL ORDER BY r.doc_no', [$year]);
     $esc = fn($v) => '"' . str_replace('"', '""', (string)$v) . '"';
     $lines = ["\xEF\xBB\xBF" . implode(',', ['발급번호', '성명', '주민등록번호(마스킹)', '주소', '기부금액', '발급일'])];
@@ -253,7 +260,7 @@ route('GET', '/receipts-export', function () {
         $s = json_decode((string)$x['snapshot'], true);
         $lines[] = implode(',', [$esc($x['doc_no']), $esc($s['name']), $esc($s['rrnMasked']), $esc($s['address']), (int)$x['total'], $esc(substr((string)$x['issued_at'], 0, 10))]);
     }
-    audit('영수증 발급명세 내려받기', (string)$year, $a);
+    audit('영수증 발급명세 내려받기', $year . $why, $a);
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="receipts-' . $year . '.csv"');
     header('X-Content-Type-Options: nosniff');

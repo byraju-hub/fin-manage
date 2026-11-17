@@ -5,6 +5,7 @@
 	import DonorPicker, { type Donor } from '#lib/DonorPicker.svelte';
 	import { won, localDate, errText } from '#lib/fmt.ts';
 	import { hrefTo } from '#lib/paths.ts';
+	import { dlOpen } from '#lib/download.svelte.ts';
 
 	const roles = $derived(auth.me?.access?.roles ?? []);
 	const canTotals = $derived(roles.some((r) => ['재정 담당', '재정위원장', '담임목사', '감사', '열람'].includes(r)));
@@ -88,7 +89,7 @@
 {:else if tab === 'monthly' || tab === 'exec' || tab === 'settle'}
 	<form class="row no-print" style="flex-wrap:wrap" onsubmit={(e) => { e.preventDefault(); load(); }}>
 		<input type="number" bind:value={ym.year} style="width:6.5rem" aria-label="연도" />년
-		{#if tab === 'settle'}<a class="ghost sm" style="padding:.35rem .7rem;border:1px solid var(--line-strong);border-radius:10px" href={hrefTo('/api/v1/export/settlement') + '?year=' + ym.year}>엑셀로 받기</a>{/if}
+		{#if tab === 'settle'}<button class="ghost sm" type="button" onclick={() => dlOpen('settlement', `${ym.year}년 결산서`, hrefTo('/api/v1/export/settlement') + '?year=' + ym.year)}>엑셀로 받기</button>{/if}
 		{#if tab === 'monthly'}<select bind:value={ym.month} style="width:auto" aria-label="월">{#each Array.from({ length: 12 }, (_, i) => i + 1) as m}<option value={m}>{m}월</option>{/each}</select>{/if}
 		<button class="sm" type="submit">보기</button>
 	</form>

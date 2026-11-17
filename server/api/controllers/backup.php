@@ -42,8 +42,9 @@ route('GET', '/backup/info', function () {
 route('GET', '/backup/download', function () {
     $a = require_admin();
     require_reconfirm();
+    $why = dl_take('backup');
     $json = json_encode(backup_dump(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
-    audit('백업 내려받기', '', $a);
+    audit('백업 내려받기', ltrim($why, ' ·'), $a);
     header('Content-Type: application/json; charset=utf-8');
     header('Content-Disposition: attachment; filename="fin-manage-backup-' . date('Ymd-His') . '.json"');
     header('X-Content-Type-Options: nosniff');

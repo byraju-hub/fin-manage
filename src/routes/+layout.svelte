@@ -7,6 +7,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '#lib/auth.svelte.ts';
 	import { hrefTo, stripBase } from '#lib/paths.ts';
+	import { dl, PURPOSES } from '#lib/download.svelte.ts';
 
 	let { children } = $props();
 
@@ -18,6 +19,21 @@
 	let msg = $state('');
 	let last = Date.now();
 	let menuOpen = $state(false);
+	let dlPurpose = $state('');
+	let dlNote = $state('');
+	function dlSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		const purpose = dlPurpose;
+		const note = dlNote.trim();
+		dlPurpose = '';
+		dlNote = '';
+		dl.done({ purpose, note });
+	}
+	function dlCancel() {
+		dlPurpose = '';
+		dlNote = '';
+		dl.done(null);
+	}
 	let userOpen = $state(false);
 	let scrollY = $state(0);
 	// 스크롤을 내리는 만큼 상단바가 조금씩 줄어듦 (맨 위 0 → 160px 내리면 1)
@@ -52,7 +68,7 @@
 		add('헌금', [canOffer && { to: '/offerings', label: '헌금 입력', hint: '묶음·빠른 입력·대조·마감' }, canReport && { to: '/pledges', label: '작정헌금', hint: '작정·이행률·남은 금액' }, isStaff && { to: '/receipts', label: '기부금 영수증', hint: '연말 발급·발급 대장' }]);
 		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }]);
 		add('장부', [canLedger && { to: '/ledger', label: '장부', hint: '수입·지출·이체·계좌 잔액' }, canBudget && { to: '/budget', label: '예산', hint: '편성·확정·추경·집행' }, canLedger && { to: '/closing', label: '마감', hint: '월 마감·연 마감·이월' }]);
-		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '' }], true);
+		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '주간·월·집행·결산' }, canReport && { to: '/reports/groups', label: '교구별 헌금', hint: '모임별 합계(개인별 금액 없음)' }], true);
 		add('설정', [
 			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
 			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
@@ -340,6 +356,22 @@
 			<div class="row">
 				<button type="button" class="ghost" onclick={() => auth.submitReconfirm(null)}>취소</button>
 				<button type="submit" disabled={rcBusy}>확인</button>
+			</div>
+		</form>
+	</div>
+
+	<div class="modal-bg" class:open={!!dl.pending}>
+		<form class="modal" onsubmit={dlSubmit}>
+			<h3>내려받기 사유</h3>
+			<p class="muted fs-s">{dl.pending?.label} · 누가 무슨 사유로 받았는지 기록에 남습니다. 받은 파일은 쓰고 나서 지워 주세요.</p>
+			<select bind:value={dlPurpose} required={dl.pending?.required} aria-label="사유">
+				<option value="">{dl.pending?.required ? '사유를 고르세요' : '사유 없음'}</option>
+				{#each PURPOSES as p}<option>{p}</option>{/each}
+			</select>
+			{#if dlPurpose === '기타'}<input bind:value={dlNote} placeholder="사유를 적어 주세요" maxlength="100" required style="margin-top:.4rem" />{/if}
+			<div class="row" style="margin-top:.6rem">
+				<button type="button" class="ghost" onclick={dlCancel}>취소</button>
+				<button type="submit">내려받기</button>
 			</div>
 		</form>
 	</div>

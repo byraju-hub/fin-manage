@@ -65,7 +65,8 @@ try:
     s, j = stf.call('POST', '/receipts/issue', {'year': Y, 'donorIds': [d1]}); check('금액이 달라지면 정정 발급(이전 것 무효)', j['data']['corrected'] == 1, j)
     rs = stf.call('GET', f'/receipts?year={Y}')[1]['data']['items']
     check('새 번호 2098-0002, 이전 것은 무효 표시', rs[0]['docNo'] == '2098-0002' and rs[0]['correction'] and rs[1]['void'] and rs[0]['total'] == 150000, rs)
-    req = urllib.request.Request('http://127.0.0.1:8091/api/v1/receipts-export?year=%d' % Y)
+    tk = stf.call('POST', '/downloads/ticket', {'kind': 'receipts', 'purpose': '세무 신고'})[1]['data']['token']
+    req = urllib.request.Request('http://127.0.0.1:8091/api/v1/receipts-export?year=%d&dl=%s' % (Y, tk))
     resp = stf.op.open(req); body = resp.read().decode('utf-8-sig')
     check('발급 명세 CSV(유효한 영수증만)', '2098-0002' in body and '2098-0001' not in body and '150000' in body, body)
 

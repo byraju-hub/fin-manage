@@ -207,17 +207,21 @@ function csv_out(string $name, array $rows): never
 route('GET', '/export/ledger', function () {
     $a = require_ledger_view();
     $year = in_int($_GET, 'year', 2000, 2100, '연도');
+    $why = dl_take('ledger');
     $r = rows('SELECT t.tx_date, t.kind, w.name AS w, ia.name AS a, u.name AS u, bi.name AS i, t.amount, t.summary, t.vendor, t.void_at FROM ' . t('transactions') . ' t JOIN ' . t('wallets') . ' w ON w.id = t.wallet_id LEFT JOIN ' . t('income_accounts') . ' ia ON ia.id = t.income_account_id LEFT JOIN ' . t('units') . ' u ON u.id = t.unit_id LEFT JOIN ' . t('budget_items') . ' bi ON bi.id = t.budget_item_id WHERE t.fiscal_year = ? ORDER BY t.tx_date, t.id', [$year]);
     $out = [['날짜', '구분', '계좌', '수입 항목', '재정 단위', '예산 항목', '금액', '적요', '거래처', '취소']];
     foreach ($r as $x) $out[] = [$x['tx_date'], $x['kind'], $x['w'], (string)$x['a'], (string)$x['u'], (string)$x['i'], (int)$x['amount'], $x['summary'], (string)$x['vendor'], $x['void_at'] ? '취소' : ''];
-    audit('장부 내려받기', (string)$year, $a);
+    audit('장부 내려받기', $year . $why, $a);
     csv_out('ledger-' . $year, $out);
 });
 
 route('GET', '/export/settlement', function () {
     $a = require_account();
     if (!can_see_totals($a)) json_fail('forbidden', '권한이 없습니다.', 403);
-    $d = settlement_data(in_int($_GET, 'year', 2000, 2100, '연도'));
+    $yr = in_int($_GET, 'year', 2000, 2100, '연도');
+    $why = dl_take('settlement');
+    $d = settlement_data($yr);
+    audit('결산서 내려받기', $yr . $why, $a);
     $out = [['구분', '항목', '예산', '결산', '전년']];
     foreach ($d['income'] as $i) $out[] = ['수입', $i['name'], $i['budget'], $i['actual'], $i['prior']];
     foreach ($d['expense'] as $u) foreach ($u['items'] as $i) $out[] = ['지출', $u['unit'] . ' · ' . $i['name'], $i['budget'], $i['actual'], 0];
