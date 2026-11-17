@@ -72,6 +72,7 @@ route('GET', '/donors', function () {
     $p = [];
     if ($qs !== '') { $sql .= ' WHERE d.name LIKE ? OR d.donor_no = ?'; $p = ['%' . $qs . '%', $qs]; }
     $r = rows($sql . ' ORDER BY d.name, d.id LIMIT 100', $p);
+    audit('헌금자 목록 열람', $qs !== '' ? $qs : '전체');
     json_out(['rrnMode' => rrn_mode(), 'items' => array_map(function ($d) use ($keep) {
         $info = donor_info($d);
         return ['id' => (int)$d['id'], 'name' => $d['name'], 'member' => $d['person_id'] !== null, 'donorNo' => $d['donor_no'], 'address' => $d['receipt_address'], 'cmAddress' => $info['address'], 'receiptTo' => $d['receipt_to_donor_id'] ? (int)$d['receipt_to_donor_id'] : null, 'merged' => (int)$d['merged'],
@@ -145,6 +146,7 @@ route('GET', '/receipts/preview', function () {
     require_receipt_staff();
     $year = in_int($_GET, 'year', 2000, 2100, '과세 연도');
     $keep = rrn_mode() === 'keep';
+    audit('영수증 미리보기', (string)$year);
     $out = [];
     foreach (receipt_groups($year) as $tid => $g) {
         $d = row('SELECT * FROM ' . t('donors') . ' WHERE id = ?', [$tid]);

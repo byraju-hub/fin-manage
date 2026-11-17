@@ -47,6 +47,17 @@ function demo_account(array $u): array
 }
 
 /** 체험 표를 준비한다(없거나 오래되면 새로 만듦). 체험 스위치를 켠 채로 부른다. */
+/** 진짜 표가 늘어난(업데이트) 뒤에는 체험 표도 새로 만들어야 하므로 표 개수를 맞춰 본다 */
+function demo_tables_match(): bool
+{
+    $like = fn(string $p) => str_replace(['_', '%'], ['\_', '\%'], $p) . '%';
+    $st = db()->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME LIKE ?');
+    $st->execute([$like(fm_demo_prefix())]);
+    $d = (int)$st->fetchColumn();
+    $st->execute([$like((string)fm_config()['prefix'])]);
+    return $d === (int)$st->fetchColumn() - 1; // 접속 시도 표(login_attempts)는 체험에 없음
+}
+
 function demo_ensure(): void
 {
     static $done = false;
@@ -58,7 +69,7 @@ function demo_ensure(): void
         $seeded = $pdo->query("SELECT v FROM $meta WHERE k = 'demo_seeded_on'")->fetchColumn();
     } catch (Throwable) {
     }
-    if ($seeded && (time() - strtotime((string)$seeded)) < FM_DEMO_FRESH_DAYS * 86400) {
+    if ($seeded && (time() - strtotime((string)$seeded)) < FM_DEMO_FRESH_DAYS * 86400 && demo_tables_match()) {
         $done = true;
         return;
     }
@@ -72,7 +83,7 @@ function demo_ensure(): void
             $again = $pdo->query("SELECT v FROM $meta WHERE k = 'demo_seeded_on'")->fetchColumn();
         } catch (Throwable) {
         }
-        if (!$again || (time() - strtotime((string)$again)) >= FM_DEMO_FRESH_DAYS * 86400) demo_rebuild();
+        if (!$again || (time() - strtotime((string)$again)) >= FM_DEMO_FRESH_DAYS * 86400 || !demo_tables_match()) demo_rebuild();
     } finally {
         if ($got) $pdo->query("SELECT RELEASE_LOCK('fm_demo_seed')");
     }
@@ -201,6 +212,12 @@ function demo_seed(): void
         $d = new DateTime("$prior-" . sprintf('%02d', $m) . '-01');
         while ($d->format('w') !== '0') $d->modify('+1 day');
         $mk($d->format('Y-m-d'), $prior, array_slice($donors, 0, 24));
+    }
+
+    // 작정헌금(가짜): 건축·선교헌금을 작정한 헌금자 몇 명
+    foreach (array_slice($donors, 0, 12) as $i => $dn) {
+        $ac = $i % 2 === 0 ? $build : $mission;
+        q('INSERT INTO ' . t('pledges') . ' (fiscal_year, donor_id, income_account_id, amount, created_by) VALUES (?,?,?,?,1)', [$year, $dn['id'], $ac, ($i + 1) * 100000]);
     }
 
     // 기타 수입·직접 지출·이체

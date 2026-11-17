@@ -13,7 +13,7 @@
 
 	const me = $derived(auth.me?.access);
 	const isStaff = $derived(!!me?.roles.includes('재정 담당'));
-	const KINDS = ['주일', '수요예배', '새벽기도', '절기', '계좌이체분', '기타'];
+	const KINDS = ['주일', '주일 1부', '주일 2부', '주일 3부', '수요예배', '새벽기도', '절기', '계좌이체분', '기타'];
 
 	let year = $state(0);
 	let years = $state<number[]>([]);
@@ -112,9 +112,21 @@
 			busy = false;
 		}
 	}
+	/** 금액 입력 칸의 값. '천 단위 자동'이면 입력값에 1,000 을 곱한다. */
+	let thousand = $state(false);
+	const amountValue = () => (Number(f.amount.replace(/,/g, '')) || 0) * (thousand ? 1000 : 1);
+	/** 금액 칸 단축키: 숫자 뒤에 R(×100)·T(×1,000)·Y(×10,000). 한글 자판(ㄱ·ㅅ·ㅛ)도 같다. */
+	const MULT: Record<string, number> = { r: 100, ㄱ: 100, t: 1000, ㅅ: 1000, y: 10000, ㅛ: 10000 };
+	function amountKey(e: KeyboardEvent) {
+		const m = MULT[e.key.toLowerCase()];
+		if (!m || e.ctrlKey || e.metaKey || e.altKey) return;
+		e.preventDefault();
+		const n = Number(f.amount.replace(/,/g, ''));
+		if (n > 0) f.amount = String(n * m);
+	}
 	async function addLine() {
 		if (!cur) return;
-		const amount = Number(f.amount.replace(/,/g, ''));
+		const amount = amountValue();
 		const body = { hide: f.hide, accountId: f.accountId, donor: acct?.named ? (f.donor?.key ?? '') : '', amount, method: f.method, unitId: f.unitId || undefined, purpose: f.purpose, memo: f.memo };
 		if (await run(() => auth.api('POST', `/offering-batches/${cur!.batch.id}/lines`, body))) {
 			f.donor = null;
@@ -237,8 +249,12 @@
 							</div>
 						{/if}
 						<div class="row" style="flex-wrap:wrap">
-							<input bind:this={amountEl} class="amount-in" bind:value={f.amount} inputmode="numeric" placeholder="금액 (원)" required style="flex:1;min-width:9rem" />
+							<input bind:this={amountEl} class="amount-in" bind:value={f.amount} onkeydown={amountKey} inputmode="numeric" placeholder={thousand ? '금액 (천 원 단위)' : '금액 (원)'} required style="flex:1;min-width:9rem" />
 							<select bind:value={f.method} style="width:auto" aria-label="받은 방법"><option>현금</option><option>계좌이체</option><option>온라인</option></select>
+						</div>
+						<div class="row fs-s" style="align-items:center;flex-wrap:wrap;gap:.6rem">
+							<label class="row"><span class="switch"><input type="checkbox" bind:checked={thousand} /><i></i></span> 천 원 단위로 입력</label>
+							<span class="muted">{#if f.amount}= <b>{won(amountValue())}원</b> · {/if}숫자 뒤에 R(×100) T(×1,000) Y(×10,000)</span>
 						</div>
 						{#if acct?.needsUnit}
 							<select bind:value={f.unitId} required aria-label="부서"><option value={0} disabled>부서 선택</option>{#each units as u}<option value={u.id}>{u.name}</option>{/each}</select>
