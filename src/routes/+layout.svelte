@@ -69,15 +69,19 @@
 		add('지출', [{ to: '/vouchers', label: '지출결의서', hint: '기안·상신·지급 처리' }, { to: '/approvals', label: '결재함', hint: '결재할 문서·사후 확인·지급 대기' }, canBudget && { to: '/events', label: '행사 정산', hint: '수련회·행사의 수입·지출' }]);
 		add('장부', [canLedger && { to: '/ledger', label: '장부', hint: '수입·지출·이체·계좌 잔액' }, canBudget && { to: '/budget', label: '예산', hint: '편성·확정·추경·집행' }, canLedger && { to: '/closing', label: '마감', hint: '월 마감·연 마감·이월' }]);
 		add('보고서', [canReport && { to: '/reports', label: '보고서', hint: '주간·월·집행·결산' }, canReport && { to: '/reports/groups', label: '교구별 헌금', hint: '모임별 합계(개인별 금액 없음)' }, canBudget && { to: '/reports/spending', label: '부서별 지출', hint: '위원회·부서 × 카테고리' }], true);
-		add('설정', [
-			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
+		// 운영 기준: 한 번 정해 두고 가끔 손보는 것 (회계연도·계좌, 조직, 카테고리, 결재 규칙)
+		add('운영 기준', [
 			isStaff && { to: '/base', label: '기준 자료', hint: '회계연도·계좌·수입 항목' },
-			isStaff && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
+			isStaff && { to: '/units', label: '재정 단위·담당자', hint: '위원회·부서와 회계·부서장' },
+			(isAdmin || demo) && { to: '/admin/categories', label: '지출 카테고리', hint: '관·항·목 · 부서별 사용 카테고리' },
+			(isAdmin || demo) && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' }
+		]);
+		// 설정: 관리자 일 (사용자·교회 정보·자료 가져오기·백업)
+		add('설정', [
 			(isAdmin || demo) && { to: '/admin/users', label: '재정 사용 승인', hint: '신청 승인·역할·열람 지정' },
 			(isAdmin || demo) && { to: '/admin/church', label: '교회 정보·영수증·보안', hint: '고유번호·직인·서식·주민번호 방식' },
-			(isAdmin || demo) && { to: '/admin/categories', label: '지출 카테고리', hint: '관·항·목 · 부서별 사용 카테고리' },
-			(isAdmin || demo) && { to: '/admin/rules', label: '결재 규칙', hint: '금액 구간·직접 지출·대리 결재' },
-			(isAdmin || demo) && { to: '/admin/backup', label: '백업', hint: '내려받기·되살리기' }
+			isStaff && { to: '/import', label: '기존 자료 가져오기', hint: '엑셀 헌금 내역·예산' },
+			(isAdmin || demo) && { to: '/admin/backup', label: '백업·샘플 자료', hint: '내려받기·되살리기·샘플' }
 		]);
 		return g;
 	});
