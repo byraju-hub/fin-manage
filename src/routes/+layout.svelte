@@ -386,7 +386,7 @@
 			<div class="foot-copy">
 				<span>ⓒ {new Date().getFullYear()} {auth.church}. All Rights Reserved.</span>
 				<small>프로그램 <a href="https://github.com/byraju-hub/fin-manage" target="_blank" rel="noopener">fin-manage</a> · GNU AGPL-3.0</small>
-				<small><a href={hrefTo('/privacy')}>개인정보 처리 방침</a></small>
+				<small><a class="priv-link" href={hrefTo('/privacy')}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-1px;margin-right:3px"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z" /><path d="M9 12l2.2 2.2L15.5 10" /></svg>개인정보 처리방침</a></small>
 			</div>
 		</div>
 	</footer>
