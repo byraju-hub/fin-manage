@@ -201,6 +201,8 @@
 
 <svelte:window bind:scrollY />
 
+<svelte:head><title>{auth.church || '교회'} 재정 관리</title></svelte:head>
+
 <div class="site">
 	{#if demo}
 		<div class="demo-band" role="status">체험 계정으로 보고 있어요. 모든 화면을 볼 수 있지만 저장하거나 바꿀 수는 없어요.</div>
