@@ -38,7 +38,7 @@
 	const show = (id: string) => hits === null || hits.has(id);
 </script>
 
-<svelte:head><title>프로그램 매뉴얼 · {auth.church || '교회'} 재정 관리</title></svelte:head>
+<svelte:head><title>교회 재정 관리</title></svelte:head>
 
 <div class="manual">
 	<header class="mhero">

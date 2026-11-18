@@ -16,7 +16,7 @@
 	const email = $derived(auth.contact.email || '(미등록)');
 </script>
 
-<svelte:head><title>개인정보 처리방침 · {church} 재정 관리</title></svelte:head>
+<svelte:head><title>교회 재정 관리</title></svelte:head>
 
 <div class="hero">
 	<div>
